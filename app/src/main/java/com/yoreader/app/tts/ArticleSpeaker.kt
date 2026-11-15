@@ -26,6 +26,8 @@ class ArticleSpeaker(context: Context) {
         val total: Int = 0,
         /** Shown once by the UI when something went wrong, e.g. no Spanish voice. */
         val error: String? = null,
+        /** Set when reading a web page opened in the app rather than a stored article. */
+        val pageUrl: String? = null,
     ) {
         val isActive get() = articleId != null && status != Status.IDLE
     }
@@ -33,6 +35,11 @@ class ArticleSpeaker(context: Context) {
     private val appContext = context.applicationContext
     private val _state = MutableStateFlow(State())
     val state: StateFlow<State> = _state
+
+    private val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private val _rate = MutableStateFlow(prefs.getFloat(KEY_RATE, SpeechRate.NORMAL))
+    /** Speech speed, kept across articles and app restarts. */
+    val rate: StateFlow<Float> = _rate
 
     private var tts: TextToSpeech? = null
     private var engineReady = false
@@ -46,9 +53,16 @@ class ArticleSpeaker(context: Context) {
 
     /**
      * Starts reading [paragraphs] (title first) in [language] ("es"/"en"/null for the
-     * device default). Replaces whatever was being read.
+     * device default). Replaces whatever was being read. [pageUrl] marks a web page
+     * (not a stored article), so the UI can link back to it.
      */
-    fun play(articleId: Long, title: String, paragraphs: List<String>, language: String?) {
+    fun play(
+        articleId: Long,
+        title: String,
+        paragraphs: List<String>,
+        language: String?,
+        pageUrl: String? = null,
+    ) {
         val text = SpeechText.chunks(listOf(title) + paragraphs)
         if (text.isEmpty()) return
         session++
@@ -58,7 +72,7 @@ class ArticleSpeaker(context: Context) {
             "en" -> Locale.US
             else -> Locale.getDefault()
         }
-        _state.value = State(Status.PREPARING, articleId, title, 0, text.size)
+        _state.value = State(Status.PREPARING, articleId, title, 0, text.size, pageUrl = pageUrl)
         withEngine { speakFrom(0) }
     }
 
@@ -84,6 +98,24 @@ class ArticleSpeaker(context: Context) {
         pendingStart = null
         tts?.stop()
         _state.value = State()
+    }
+
+    fun faster() = setRate(SpeechRate.faster(_rate.value))
+
+    fun slower() = setRate(SpeechRate.slower(_rate.value))
+
+    private fun setRate(value: Float) {
+        if (value == _rate.value) return
+        _rate.value = value
+        prefs.edit().putFloat(KEY_RATE, value).apply()
+        // Engines apply a new rate only to text queued after it, so re-queue from the
+        // part being read; it restarts at the new speed.
+        val s = _state.value
+        if (s.status == Status.SPEAKING && engineReady) {
+            session++
+            tts?.stop()
+            speakFrom(s.position)
+        }
     }
 
     fun clearError() = _state.update { it.copy(error = null) }
@@ -124,6 +156,7 @@ class ArticleSpeaker(context: Context) {
             fail("No $name voice installed. Add one in Android Settings › Text-to-speech.")
             return
         }
+        engine.setSpeechRate(_rate.value)
         val run = session
         for (i in index until chunks.size) {
             val mode = if (i == index) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD
@@ -135,6 +168,11 @@ class ArticleSpeaker(context: Context) {
     private fun fail(message: String) {
         session++
         _state.value = State(error = message)
+    }
+
+    private companion object {
+        const val PREFS = "speech"
+        const val KEY_RATE = "rate"
     }
 
     /** Utterance ids are "<session>:<chunk index>". */

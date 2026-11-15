@@ -1,6 +1,7 @@
 package com.yoreader.app.ui.reader
 
 import com.yoreader.app.data.Article
+import com.yoreader.app.data.SearchText
 import com.yoreader.app.fetch.Html
 import java.text.DateFormat
 import java.util.Date
@@ -22,8 +23,37 @@ internal object ArticleHtml {
             DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(it))
         }
         val meta = listOfNotNull(feedTitle, date, if (cleaned) "Cleaned up" else null)
-            .joinToString(" · ") { Html.escape(it) }
-        val lang = article.language?.let { " lang=\"${Html.escape(it)}\"" }.orEmpty()
+        return page(
+            title = article.title,
+            meta = meta,
+            bodyHtml = body
+                ?: "<p class=\"empty\">This feed only includes the title. Use \"Clean up\" to fetch the full article.</p>",
+            language = article.language,
+        )
+    }
+
+    /** A cleaned web page opened from a link (not stored as an article). */
+    fun webPage(title: String, host: String, bodyHtml: String, language: String?): String =
+        page(title, listOf(host, "Cleaned up"), bodyHtml, language)
+
+    private val HEADING = Regex("(?is)<h([1-3])\\b[^>]*>(.*?)</h\\1\\s*>")
+
+    /**
+     * Cleaned pages often repeat the headline as their first heading; we already show
+     * the title in our header, so an early heading with the same text is removed.
+     */
+    internal fun withoutRepeatedTitle(bodyHtml: String, title: String): String {
+        val wanted = SearchText.normalize(Html.toPlainText(title))
+        val match = HEADING.find(bodyHtml) ?: return bodyHtml
+        if (match.range.first > 3_000) return bodyHtml
+        val heading = SearchText.normalize(Html.toPlainText(match.groupValues[2]))
+        return if (heading == wanted) bodyHtml.removeRange(match.range) else bodyHtml
+    }
+
+    private fun page(title: String, meta: List<String>, bodyHtml: String, language: String?): String {
+        val metaLine = meta.joinToString(" · ") { Html.escape(it) }
+        val body = withoutRepeatedTitle(bodyHtml, title)
+        val lang = language?.let { " lang=\"${Html.escape(it)}\"" }.orEmpty()
 
         return """
             <!DOCTYPE html>
@@ -35,11 +65,11 @@ internal object ArticleHtml {
             </head>
             <body>
             <header>
-              <p class="meta">$meta</p>
-              <h1>${Html.escape(article.title)}</h1>
+              <p class="meta">$metaLine</p>
+              <h1>${Html.escape(title)}</h1>
             </header>
             <article>
-            ${body ?: "<p class=\"empty\">This feed only includes the title. Use \"Clean up\" to fetch the full article.</p>"}
+            $body
             </article>
             </body>
             </html>

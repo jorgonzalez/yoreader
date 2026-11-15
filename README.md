@@ -48,6 +48,11 @@ Sources, groups, feed fetching, the article list and a basic reader work.
     off, links open in the browser); opening marks it read. Top bar: read aloud,
     clean up, save for later, open original; menu: mark unread, share, switch
     between cleaned and feed version, clean up again.
+- **Links open in the app** (`ui/reader/WebPageScreen`): "Open original" and links in
+  articles open an in-app page (a small browser: JavaScript on, links followed,
+  Back goes back). Its top bar has Read aloud (cleans the page first if needed),
+  Clean up (toggles cleaned/original), Share and Open in browser. Cleaned pages
+  opened this way are kept in memory only, not stored.
 - **Clean up** (`clean/ArticleCleaner`): downloads the article's page and keeps only
   the article with Readability4J + jsoup. Stored as `cleanedHtml` (shown in the
   reader) and `cleanedText` (paragraphs, used for listening and search). Some sites
@@ -57,9 +62,10 @@ Sources, groups, feed fetching, the article list and a basic reader work.
   Reads the version on screen (cleaned if shown), title first, in chunks the engine
   accepts. Language per article from its text (Spanish/English function words),
   falling back to the feed's language. A "now playing" bar above the bottom bar
-  shows progress with pause/resume and stop on every screen. Not yet: a foreground
+  shows progress, speed − / + (0.5× to 3×, remembered), pause/resume and stop on
+  every screen. Not yet: a foreground
   media service (so reading may stop if Android kills the app in the background),
-  lock-screen controls, speed setting.
+  lock-screen controls.
   - **Edit group**: rename, delete, add a source by URL, remove sources
   - **Sources**: add by URL (optionally into groups); tap a source for its articles;
     its menu changes groups, refreshes, or deletes. Each source shows when it was
@@ -93,8 +99,8 @@ Sources, groups, feed fetching, the article list and a basic reader work.
 3. **Article list and reader** - done. Lists show the newest 1000 articles; there is
    no clean-up of old articles yet.
 4. **Clean up** - done (per article, from the reader).
-5. **TTS** - basic read-aloud done. Still to do: foreground media service with
-   lock-screen/notification controls, speed control, sentence highlighting.
+5. **TTS** - read-aloud with speed control done. Still to do: foreground media
+   service with lock-screen/notification controls, sentence highlighting.
 6. **Polish** - OPML import/export, offline reading, article search.
 
 ## Layout

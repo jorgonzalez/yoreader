@@ -1,12 +1,5 @@
 package com.yoreader.app.ui.reader
 
-import android.content.ActivityNotFoundException
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.webkit.WebResourceRequest
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -21,6 +14,7 @@ import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Refresh
@@ -45,18 +39,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import com.yoreader.app.data.ArticleWithFeed
 import com.yoreader.app.tts.ArticleSpeaker
-import com.yoreader.app.ui.theme.Background
 import kotlinx.coroutines.flow.Flow
 
 /**
  * One article. Top bar: read aloud, clean up (fetch the page and keep only the article),
- * save for later, open original, and a menu with mark unread, share and version switching.
+ * save for later, open original (in the app), and a menu with mark unread, open in
+ * browser, share and version switching. Links in the text also open in the app.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,6 +64,8 @@ fun ReaderScreen(
     onSetShowFeedVersion: (Boolean) -> Unit,
     onSetSaved: (Boolean) -> Unit,
     onMarkUnread: () -> Unit,
+    /** Opens a link inside the app (where it can be cleaned up and read aloud). */
+    onOpenLink: (String) -> Unit,
 ) {
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
@@ -144,7 +138,7 @@ fun ReaderScreen(
                     }
 
                     if (link != null) {
-                        IconButton(onClick = { openExternal(context, link) }) {
+                        IconButton(onClick = { onOpenLink(link) }) {
                             Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "Open original")
                         }
                     }
@@ -163,6 +157,14 @@ fun ReaderScreen(
                                 },
                             )
                             if (link != null) {
+                                DropdownMenuItem(
+                                    text = { Text("Open in browser") },
+                                    leadingIcon = { Icon(Icons.Default.Public, contentDescription = null) },
+                                    onClick = {
+                                        menuOpen = false
+                                        openExternal(context, link)
+                                    },
+                                )
                                 DropdownMenuItem(
                                     text = { Text("Share") },
                                     leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
@@ -207,56 +209,9 @@ fun ReaderScreen(
                 ArticleWebView(
                     html = ArticleHtml.build(item.article, item.feedTitle, cleaned = showingCleaned),
                     baseUrl = link ?: item.feedUrl,
+                    onLinkClick = onOpenLink,
                 )
             }
         }
     }
-}
-
-/** Shows [html] with JavaScript off; tapping a link opens it in the browser. */
-@Composable
-private fun ArticleWebView(html: String, baseUrl: String) {
-    AndroidView(
-        factory = { ctx ->
-            WebView(ctx).apply {
-                setBackgroundColor(Background.toArgb())
-                settings.javaScriptEnabled = false
-                settings.allowFileAccess = false
-                settings.allowContentAccess = false
-                webViewClient = object : WebViewClient() {
-                    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                        openExternal(view.context, request.url.toString())
-                        return true
-                    }
-                }
-            }
-        },
-        // Reload only when the content really changed (e.g. not when saving),
-        // so the scroll position is kept.
-        update = { view ->
-            if (view.tag != html) {
-                view.tag = html
-                view.loadDataWithBaseURL(baseUrl, html, "text/html", "utf-8", null)
-            }
-        },
-        onRelease = { it.destroy() },
-        modifier = Modifier.fillMaxSize(),
-    )
-}
-
-private fun openExternal(context: Context, url: String) {
-    try {
-        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-    } catch (e: ActivityNotFoundException) {
-        // No browser or app can handle it; nothing useful to do.
-    }
-}
-
-private fun share(context: Context, title: String, url: String) {
-    val send = Intent(Intent.ACTION_SEND).apply {
-        type = "text/plain"
-        putExtra(Intent.EXTRA_SUBJECT, title)
-        putExtra(Intent.EXTRA_TEXT, url)
-    }
-    context.startActivity(Intent.createChooser(send, null))
 }

@@ -1,5 +1,6 @@
 package com.yoreader.app.ui
 
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -42,6 +43,8 @@ import com.yoreader.app.ui.components.TextInputDialog
 import com.yoreader.app.ui.groups.GroupDetailScreen
 import com.yoreader.app.ui.reader.ReaderScreen
 import com.yoreader.app.ui.reader.ReaderViewModel
+import com.yoreader.app.ui.reader.WebPageScreen
+import com.yoreader.app.ui.reader.WebPageViewModel
 import com.yoreader.app.ui.search.SearchScreen
 import com.yoreader.app.ui.search.SearchViewModel
 import com.yoreader.app.ui.shell.ALL
@@ -59,6 +62,9 @@ private const val ROUTE_SOURCES = "sources"
 private const val ROUTE_GROUP_EDIT = "group/{groupId}/edit"
 private const val ROUTE_ARTICLES = "articles/{${ArticlesViewModel.ARG_KIND}}/{${ArticlesViewModel.ARG_ID}}"
 private const val ROUTE_READER = "article/{${ReaderViewModel.ARG_ARTICLE_ID}}"
+private const val ROUTE_WEB = "web?${WebPageViewModel.ARG_URL}={${WebPageViewModel.ARG_URL}}"
+
+private fun webRoute(url: String) = "web?${WebPageViewModel.ARG_URL}=" + Uri.encode(url)
 
 private fun articlesRoute(kind: String, id: Long = 0) = "articles/$kind/$id"
 
@@ -79,6 +85,7 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
     val context = LocalContext.current
     val speaker = remember(context) { (context.applicationContext as YoReaderApp).speaker }
     val speech by speaker.state.collectAsStateWithLifecycle()
+    val speechRate by speaker.rate.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     // Read-aloud errors (e.g. no voice for the language) can happen on any screen.
     LaunchedEffect(speech.error) {
@@ -126,8 +133,13 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                 if (speech.isActive) {
                     NowPlayingBar(
                         state = speech,
+                        rate = speechRate,
+                        onSlower = speaker::slower,
+                        onFaster = speaker::faster,
                         onOpen = {
-                            speech.articleId?.let { navController.navigate("article/$it") { launchSingleTop = true } }
+                            val page = speech.pageUrl
+                            val route = if (page != null) webRoute(page) else speech.articleId?.let { "article/$it" }
+                            route?.let { navController.navigate(it) { launchSingleTop = true } }
                         },
                         onPlayPause = {
                             if (speech.status == ArticleSpeaker.Status.PAUSED) speaker.resume() else speaker.pause()
@@ -297,6 +309,34 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                         onSetShowFeedVersion = readerVm::setShowFeedVersion,
                         onSetSaved = readerVm::setStarred,
                         onMarkUnread = { readerVm.setRead(false) },
+                        onOpenLink = { navController.navigate(webRoute(it)) },
+                    )
+                }
+
+                composable(
+                    route = ROUTE_WEB,
+                    arguments = listOf(navArgument(WebPageViewModel.ARG_URL) { type = NavType.StringType }),
+                ) {
+                    val webVm: WebPageViewModel = viewModel()
+                    val url by webVm.url.collectAsStateWithLifecycle()
+                    val pageTitle by webVm.pageTitle.collectAsStateWithLifecycle()
+                    val cleaned by webVm.cleaned.collectAsStateWithLifecycle()
+                    val showCleaned by webVm.showCleaned.collectAsStateWithLifecycle()
+                    val cleaning by webVm.cleaning.collectAsStateWithLifecycle()
+                    WebPageScreen(
+                        url = url,
+                        pageTitle = pageTitle,
+                        cleaned = cleaned,
+                        showCleaned = showCleaned,
+                        cleaning = cleaning,
+                        speech = speech,
+                        messages = webVm.messages,
+                        onBack = { navController.popBackStack() },
+                        onPageChanged = webVm::onPageChanged,
+                        onClean = { webVm.clean() },
+                        onSetShowCleaned = webVm::setShowCleaned,
+                        onReadAloud = webVm::toggleReadAloud,
+                        onOpenLink = { navController.navigate(webRoute(it)) },
                     )
                 }
 

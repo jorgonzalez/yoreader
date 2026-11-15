@@ -14,8 +14,11 @@ import java.io.InterruptedIOException
 import java.net.UnknownHostException
 
 sealed interface CleanResult {
-    /** [html] keeps images and links for display; [text] is paragraphs separated by blank lines. */
-    data class Success(val html: String, val text: String) : CleanResult
+    /**
+     * [html] keeps images and links for display; [text] is paragraphs separated by blank
+     * lines; [title] is the page's headline when Readability found one.
+     */
+    data class Success(val html: String, val text: String, val title: String? = null) : CleanResult
     data class Failure(val message: String) : CleanResult
 }
 
@@ -78,7 +81,7 @@ class ArticleCleaner(private val client: OkHttpClient) {
                 if (text.length < MIN_TEXT_CHARS) {
                     CleanResult.Failure("Couldn't find the article text on this page (paywall or consent page?)")
                 } else {
-                    CleanResult.Success(html, text)
+                    CleanResult.Success(html, text, article.title?.trim()?.takeIf { it.isNotEmpty() })
                 }
             } catch (e: Exception) {
                 CleanResult.Failure("Couldn't read this page")

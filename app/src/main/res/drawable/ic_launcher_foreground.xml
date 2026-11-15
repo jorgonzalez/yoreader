@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher icon foreground: Brandenburg Gate with an RSS badge.
+     108dp canvas; the launcher mask shows roughly the central 72dp. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Gate: quadriga, attic, cornice, frieze, six columns, base and step -->
+    <path
+        android:fillColor="#E6E7EA"
+        android:pathData="M45.5,33 L62.5,33 L62.5,35.8 L45.5,35.8 Z M49,33 L49,29.4 Q48.8,27.6 47.5,27.3 L46.4,28.2 L46.9,29 L47.6,28.8 L47.2,33 Z M52,33 L52,29.4 Q51.8,27.6 50.5,27.3 L49.4,28.2 L49.9,29 L50.6,28.8 L50.2,33 Z M56,33 L56,29.4 Q56.2,27.6 57.5,27.3 L58.6,28.2 L58.1,29 L57.4,28.8 L57.8,33 Z M59,33 L59,29.4 Q59.2,27.6 60.5,27.3 L61.6,28.2 L61.1,29 L60.4,28.8 L60.8,33 Z M52.6,33 L52.9,28.4 Q53,27.2 54,27.2 Q55,27.2 55.1,28.4 L55.4,33 Z M53,26.1 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0 Z M55.9,33 L55.9,23.4 L56.7,23.4 L56.7,33 Z M55,22.4 a1.3,1.3 0 1,0 2.6,0 a1.3,1.3 0 1,0 -2.6,0 Z M41,35.8 L67,35.8 L67,37.4 L41,37.4 Z M34,37.4 L74,37.4 L74,40 L34,40 Z M30,40.6 L78,40.6 L78,43 L30,43 Z M31,43.6 L77,43.6 L77,45.6 L31,45.6 Z M31,46.2 L34.6,46.2 L34.6,70 L31,70 Z M39.1,46.2 L42.7,46.2 L42.7,70 L39.1,70 Z M47.2,46.2 L50.8,46.2 L50.8,70 L47.2,70 Z M57.2,46.2 L60.8,46.2 L60.8,70 L57.2,70 Z M65.3,46.2 L68.9,46.2 L68.9,70 L65.3,70 Z M73.4,46.2 L77,46.2 L77,70 L73.4,70 Z M30.5,70.6 L77.5,70.6 L77.5,73 L30.5,73 Z M29,73.6 L79,73.6 L79,75.6 L29,75.6 Z" />
+
+    <!-- RSS badge: ring in the background colour to separate it from the gate -->
+    <path
+        android:fillColor="#14161C"
+        android:pathData="M59.8,69 a11.2,11.2 0 1,0 22.4,0 a11.2,11.2 0 1,0 -22.4,0 Z" />
+    <path
+        android:fillColor="#F78422"
+        android:pathData="M61.4,69 a9.6,9.6 0 1,0 19.2,0 a9.6,9.6 0 1,0 -19.2,0 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M65.6,71.1 a1.7,1.7 0 1,0 3.4,0 a1.7,1.7 0 1,0 -3.4,0 Z" />
+    <path
+        android:pathData="M65.8,67 A5.6,5.6 0 0 1 71.4,72.6"
+        android:strokeWidth="2"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M65.8,62.8 A9.8,9.8 0 0 1 75.6,72.6"
+        android:strokeWidth="2"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round" />
+</vector>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark window background so there is no white flash on launch. -->
+    <style name="Theme.YoReader" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/yo_background</item>
+        <item name="android:statusBarColor">@color/yo_background</item>
+        <item name="android:navigationBarColor">@color/yo_background</item>
+    </style>
+</resources>

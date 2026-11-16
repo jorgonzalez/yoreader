@@ -38,14 +38,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.yoreader.app.BuildConfig
 import com.yoreader.app.data.GroupWithFeeds
 
 /**
  * The side panel opened from the menu icon: all articles, the groups (tap one to see
  * its sources, plus "All in …" for the whole group), managing sources, and an
- * "Add source" button pinned to the bottom.
+ * "Add source" button pinned to the bottom, with the app version in small text below.
  * [selectedGroupId] highlights the group being viewed (-1 for "All articles").
  */
 @Composable
@@ -187,12 +189,21 @@ fun AppDrawer(
                 onClick = onAddSource,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp),
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Add source")
             }
+            Text(
+                "yoreader ${BuildConfig.VERSION_NAME} · build ${BuildConfig.VERSION_CODE} · ${BuildConfig.GIT_COMMIT}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 6.dp, bottom = 10.dp),
+            )
         }
     }
 }

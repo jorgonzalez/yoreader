@@ -5,6 +5,25 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// --- Versioning -------------------------------------------------------------------
+// versionName is set by hand (see CHANGELOG.md). versionCode and the commit id come
+// from git, so every commit builds a higher number and each build says what code it
+// is. Without git (e.g. a source zip) they fall back to 1 / "unknown".
+val appVersionName = "0.2.0"
+
+fun git(vararg args: String): String? = try {
+    providers.exec {
+        commandLine("git", *args)
+        isIgnoreExitValue = true
+    }.standardOutput.asText.get().trim().takeIf { it.isNotEmpty() }
+} catch (e: Exception) {
+    null
+}
+
+val gitCommitCount = git("rev-list", "--count", "HEAD")?.toIntOrNull() ?: 1
+val gitCommit = (git("rev-parse", "--short", "HEAD") ?: "unknown") +
+    if (git("status", "--porcelain") != null) "-dirty" else ""
+
 android {
     namespace = "com.yoreader.app"
     compileSdk = 35
@@ -13,8 +32,9 @@ android {
         applicationId = "com.yoreader.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = gitCommitCount
+        versionName = appVersionName
+        buildConfigField("String", "GIT_COMMIT", "\"$gitCommit\"")
     }
 
     buildTypes {
@@ -34,6 +54,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

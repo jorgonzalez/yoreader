@@ -104,6 +104,13 @@ Sources, groups, feed fetching, the article list and a basic reader work.
    Settings > Build Tools > Gradle > Gradle JDK; on the command line set `JAVA_HOME`.
 3. Sync and run the `app` configuration, or `./gradlew :app:assembleDebug`.
 
+## Versions
+
+`appVersionName` in `app/build.gradle.kts` is the version (raise it and add a
+`CHANGELOG.md` entry when something notable is ready). The build number is the git
+commit count and each build embeds its commit id (`-dirty` if built with uncommitted
+changes); the side menu shows all three, e.g. `yoreader 0.2.0 · build 12 · b6a79a3`.
+
 ## Roadmap
 
 1. **Sources and groups UI** - done, except reordering groups.

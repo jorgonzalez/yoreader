@@ -143,7 +143,8 @@ internal fun share(context: Context, title: String, url: String) {
     val send = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(Intent.EXTRA_SUBJECT, title)
-        putExtra(Intent.EXTRA_TEXT, url)
+        // Chat apps ignore the subject, so the title goes in the text too.
+        putExtra(Intent.EXTRA_TEXT, if (title.isBlank()) url else "$title\n$url")
     }
     context.startActivity(Intent.createChooser(send, null))
 }

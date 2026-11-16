@@ -4,11 +4,14 @@ Versions are `major.minor.patch`, set in `app/build.gradle.kts` (`appVersionName
 The build number (Android `versionCode`) is the number of git commits, and every
 build records its commit id; both show at the bottom of the side menu.
 
-## Unreleased
+## 0.3.0 - 2026-11-16
 
 - Swiping an article out of a list no longer removes it instantly: the card springs
   back showing its new state (read, or saved) and fades out after 2 seconds. Undo
   in that time just cancels it.
+- Reader: a Share button in the top bar sends the article's title and link to any
+  app. "Open original page" (in the app) moved into the ⋮ menu, next to "Open in
+  browser".
 
 ## 0.2.0 - 2026-11-16
 

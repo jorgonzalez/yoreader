@@ -38,7 +38,7 @@ Coroutines/Flow, OkHttp, WorkManager, Readability4J + jsoup.
 
 ## Current state
 
-Everything below works and is in version 0.2.0 unless marked otherwise.
+Everything below works and is in version 0.3.0 unless marked otherwise.
 
 - Gradle project (Kotlin DSL, version catalog), minSdk 26, targetSdk 35
 - Room data model: `Feed`, `FeedGroup`, `FeedGroupCrossRef` (many-to-many),
@@ -53,7 +53,7 @@ Everything below works and is in version 0.2.0 unless marked otherwise.
 - **Swipes** on any article list: left toggles read, right toggles "saved for
   later" (a second right swipe un-saves). The card must move at least 20% of its
   width. It springs back showing its new state, and if it no longer belongs in the
-  list it stays for 2 seconds, then fades out (not yet released). Undo in the
+  list it stays for 2 seconds, then fades out. Undo in the
   snackbar puts it back.
 - **Saved for later**: saved articles (stored in `Article.isStarred`).
 - **Articles** (all, one group, or one source): newest first, unread only by
@@ -66,10 +66,11 @@ Everything below works and is in version 0.2.0 unless marked otherwise.
   using `Article.searchText`, a folded plain-text copy.
 - **Reader**: the article in a WebView styled for the dark theme (JavaScript off);
   opening marks it read, and a headline repeated at the top of the content is
-  dropped. Top bar: read aloud, clean up, save for later, open original; menu: mark
-  unread, open in browser, share, switch between cleaned and feed version, clean
+  dropped. Top bar: read aloud, clean up, save for later, share (title and link, to any
+  app: WhatsApp, Signal, email...); menu: mark unread, open original page (in
+  the app), open in browser, switch between cleaned and feed version, clean
   up again.
-- **Links open in the app** (`ui/reader/WebPageScreen`): "Open original" and links in
+- **Links open in the app** (`ui/reader/WebPageScreen`): "Open original page" and links in
   articles open an in-app page (a small browser: JavaScript on, links followed,
   Back goes back, plain http allowed). Its top bar has Read aloud (cleans the page
   first if needed), Clean up (toggles cleaned/original), Share and Open in browser.

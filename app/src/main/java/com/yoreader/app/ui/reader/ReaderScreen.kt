@@ -47,8 +47,8 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * One article. Top bar: read aloud, clean up (fetch the page and keep only the article),
- * save for later, open original (in the app), and a menu with mark unread, open in
- * browser, share and version switching. Links in the text also open in the app.
+ * save for later, share (title and link, to any app), and a menu with mark unread,
+ * open the original page (in the app), open in browser and version switching. Links in the text also open in the app.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -138,8 +138,8 @@ fun ReaderScreen(
                     }
 
                     if (link != null) {
-                        IconButton(onClick = { onOpenLink(link) }) {
-                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "Open original")
+                        IconButton(onClick = { share(context, article.title, link) }) {
+                            Icon(Icons.Default.Share, contentDescription = "Share")
                         }
                     }
 
@@ -157,20 +157,21 @@ fun ReaderScreen(
                                 },
                             )
                             if (link != null) {
+                                // The original web page inside the app (links work there too).
+                                DropdownMenuItem(
+                                    text = { Text("Open original page") },
+                                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null) },
+                                    onClick = {
+                                        menuOpen = false
+                                        onOpenLink(link)
+                                    },
+                                )
                                 DropdownMenuItem(
                                     text = { Text("Open in browser") },
                                     leadingIcon = { Icon(Icons.Default.Public, contentDescription = null) },
                                     onClick = {
                                         menuOpen = false
                                         openExternal(context, link)
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Share") },
-                                    leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
-                                    onClick = {
-                                        menuOpen = false
-                                        share(context, article.title, link)
                                     },
                                 )
                             }

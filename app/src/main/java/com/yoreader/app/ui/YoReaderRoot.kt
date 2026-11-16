@@ -155,11 +155,15 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                 BottomBar(
                     selected = selectedTab,
                     onMenu = { scope.launch { if (drawerState.isOpen) drawerState.close() else drawerState.open() } },
+                    // Saved, Latest and Search always hide the side menu (it sits above
+                    // the bar, so the bar stays tappable while the menu is open).
                     onSelect = { tab ->
-                        when (tab) {
-                            BottomTab.LATEST -> navController.openFromMenu(ROUTE_LATEST)
-                            BottomTab.SAVED -> navController.openFromMenu(ROUTE_SAVED)
-                            BottomTab.SEARCH -> navController.openFromMenu(ROUTE_SEARCH)
+                        closeDrawerThen {
+                            when (tab) {
+                                BottomTab.LATEST -> navController.openFromMenu(ROUTE_LATEST)
+                                BottomTab.SAVED -> navController.openFromMenu(ROUTE_SAVED)
+                                BottomTab.SEARCH -> navController.openFromMenu(ROUTE_SEARCH)
+                            }
                         }
                     },
                 )

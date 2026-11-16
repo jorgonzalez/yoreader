@@ -66,7 +66,6 @@ fun ArticlesScreen(
     refreshing: Boolean,
     onOpenArticle: (Long) -> Unit,
     onSwipe: (ArticleListRow, SwipeAction) -> SwipeResult,
-    swipeRemovesRow: (ArticleListRow, SwipeAction) -> Boolean,
     onUndo: (SwipeResult) -> Unit,
     /** Null on top-level screens (Latest, Saved), which have no back arrow. */
     onBack: (() -> Unit)? = null,
@@ -100,9 +99,8 @@ fun ArticlesScreen(
         }
     }
 
-    fun handleSwipe(row: ArticleListRow, action: SwipeAction): Boolean {
-        val removes = swipeRemovesRow(row, action)
-        if (lastSwipe == row to action) return removes
+    fun handleSwipe(row: ArticleListRow, action: SwipeAction) {
+        if (lastSwipe == row to action) return
         lastSwipe = row to action
         val result = onSwipe(row, action)
         scope.launch {
@@ -114,7 +112,6 @@ fun ArticlesScreen(
             }
             if (lastSwipe == row to action) lastSwipe = null
         }
-        return removes
     }
 
     Scaffold(
@@ -195,12 +192,15 @@ fun ArticlesScreen(
                         contentPadding = PaddingValues(bottom = if (onAddSource != null) 88.dp else 8.dp),
                     ) {
                         items(articles, key = { it.row.id }) { item ->
-                            SwipeableArticleRow(
-                                item = item,
-                                onClick = { onOpenArticle(item.row.id) },
-                                onSwipe = { action -> handleSwipe(item.row, action) },
-                            )
-                            HorizontalDivider()
+                            // animateItem: rows that leave fade and the gap closes smoothly.
+                            Column(Modifier.animateItem()) {
+                                SwipeableArticleRow(
+                                    item = item,
+                                    onClick = { onOpenArticle(item.row.id) },
+                                    onSwipe = { action -> handleSwipe(item.row, action) },
+                                )
+                                HorizontalDivider()
+                            }
                         }
                     }
                 }

@@ -1,6 +1,7 @@
 package com.yoreader.app.ui.articles
 
 import android.text.format.DateUtils
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +34,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
@@ -43,8 +45,11 @@ import com.yoreader.app.data.ArticleListRow
 import com.yoreader.app.fetch.Html
 import kotlin.math.abs
 
-/** A list row with the HTML excerpt turned into a short plain-text preview. */
-data class ArticleListItem(val row: ArticleListRow, val preview: String)
+/**
+ * A list row with the HTML excerpt turned into a short plain-text preview. [leaving]:
+ * swiped out of this list, shown in its new state for a moment before it goes.
+ */
+data class ArticleListItem(val row: ArticleListRow, val preview: String, val leaving: Boolean = false)
 
 internal fun ArticleListRow.toListItem(): ArticleListItem {
     val text = excerptHtml?.let(Html::toPlainText).orEmpty()
@@ -60,14 +65,15 @@ private const val MIN_SWIPE_FRACTION = 0.2f
 /**
  * An article row. Swipe left toggles read, swipe right toggles saved for later; the
  * card must be dragged at least 20% of its width (a short flick doesn't count).
- * [onSwipe] performs the action and returns true if the row will leave the list
- * (then it stays swiped away); false makes it spring back.
+ * The card springs back after a swipe, showing its new state; a row leaving the list
+ * fades and can't be swiped again (the snackbar's Undo brings it back).
  */
 @Composable
 internal fun SwipeableArticleRow(
     item: ArticleListItem,
     onClick: () -> Unit,
-    onSwipe: (SwipeAction) -> Boolean,
+    onSwipe: (SwipeAction) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val row = item.row
     // The swipe state (and its callback) is created once per row, but the row changes
@@ -89,15 +95,20 @@ internal fun SwipeableArticleRow(
             when (value) {
                 SwipeToDismissBoxValue.EndToStart -> currentOnSwipe(SwipeAction.READ)
                 SwipeToDismissBoxValue.StartToEnd -> currentOnSwipe(SwipeAction.SAVE)
-                SwipeToDismissBoxValue.Settled -> true
+                SwipeToDismissBoxValue.Settled -> Unit
             }
+            false // spring back
         },
         positionalThreshold = { distance -> distance * MIN_SWIPE_FRACTION },
     )
     stateHolder[0] = state
+    val leavingAlpha by animateFloatAsState(if (item.leaving) 0.45f else 1f, label = "leaving")
     SwipeToDismissBox(
         state = state,
-        modifier = Modifier.onSizeChanged { rowWidth = it.width },
+        modifier = modifier
+            .onSizeChanged { rowWidth = it.width }
+            .alpha(leavingAlpha),
+        gesturesEnabled = !item.leaving,
         backgroundContent = {
             when (state.dismissDirection) {
                 SwipeToDismissBoxValue.StartToEnd -> SwipeBackground(

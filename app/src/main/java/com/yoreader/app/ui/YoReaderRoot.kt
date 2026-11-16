@@ -474,7 +474,6 @@ private fun ArticleList(
         refreshing = refreshing,
         onOpenArticle = { navController.navigate("article/$it") },
         onSwipe = listVm::swipe,
-        swipeRemovesRow = listVm::swipeRemovesRow,
         onUndo = listVm::undo,
         onBack = if (topLevel) null else ({ navController.popBackStack() }),
         onRefresh = if (isSaved) null else listVm::refresh,

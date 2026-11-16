@@ -9,6 +9,9 @@ import com.yoreader.app.fetch.FeedParser
 import com.yoreader.app.fetch.FeedRefresher
 import com.yoreader.app.fetch.RefreshScheduler
 import com.yoreader.app.tts.ArticleSpeaker
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 class YoReaderApp : Application() {
     val database: AppDatabase by lazy { AppDatabase.build(this) }
@@ -26,6 +29,9 @@ class YoReaderApp : Application() {
 
     /** One reader for the whole app, so listening survives moving between screens. */
     val speaker: ArticleSpeaker by lazy { ArticleSpeaker(this) }
+
+    /** For short jobs that must finish even if the screen that started them closes. */
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun onCreate() {
         super.onCreate()

@@ -64,7 +64,11 @@ class ArticlesViewModel(
     /** The All/Unread filter; only offered for all, group and feed lists. */
     val hasUnreadFilter: Boolean = scope !is ArticleScope.Latest && scope !is ArticleScope.Saved
 
-    val unreadOnly: StateFlow<Boolean> = savedState.getStateFlow(KEY_UNREAD_ONLY, false)
+    /**
+     * Lists open showing unread articles only, so read ones are out of the way;
+     * "All" brings them back for this visit.
+     */
+    val unreadOnly: StateFlow<Boolean> = savedState.getStateFlow(KEY_UNREAD_ONLY, true)
 
     /** Null until the first query result arrives, to tell loading from empty. */
     @OptIn(ExperimentalCoroutinesApi::class)

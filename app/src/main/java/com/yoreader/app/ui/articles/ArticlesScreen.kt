@@ -157,14 +157,14 @@ fun ArticlesScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     FilterChip(
-                        selected = !unreadOnly,
-                        onClick = { onSetUnreadOnly(false) },
-                        label = { Text("All") },
-                    )
-                    FilterChip(
                         selected = unreadOnly,
                         onClick = { onSetUnreadOnly(true) },
                         label = { Text("Unread") },
+                    )
+                    FilterChip(
+                        selected = !unreadOnly,
+                        onClick = { onSetUnreadOnly(false) },
+                        label = { Text("All") },
                     )
                 }
             }

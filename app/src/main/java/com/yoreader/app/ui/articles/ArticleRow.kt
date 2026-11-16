@@ -25,6 +25,8 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -58,11 +60,15 @@ internal fun SwipeableArticleRow(
     onSwipe: (SwipeAction) -> Boolean,
 ) {
     val row = item.row
+    // The swipe state (and its callback) is created once per row, but the row changes
+    // (read, saved), so always call the latest onSwipe: it carries the current row.
+    // Otherwise a second swipe would act on the row as it was at the first one.
+    val currentOnSwipe by rememberUpdatedState(onSwipe)
     val state = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             when (value) {
-                SwipeToDismissBoxValue.EndToStart -> onSwipe(SwipeAction.READ)
-                SwipeToDismissBoxValue.StartToEnd -> onSwipe(SwipeAction.SAVE)
+                SwipeToDismissBoxValue.EndToStart -> currentOnSwipe(SwipeAction.READ)
+                SwipeToDismissBoxValue.StartToEnd -> currentOnSwipe(SwipeAction.SAVE)
                 SwipeToDismissBoxValue.Settled -> true
             }
         },

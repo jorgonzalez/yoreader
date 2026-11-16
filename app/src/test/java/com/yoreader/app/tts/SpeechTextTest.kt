@@ -54,4 +54,38 @@ class SpeechTextTest {
         assertTrue(chunks.all { it.length <= 100 })
         assertEquals(words, chunks.joinToString(" "))
     }
+
+    private val text = "Primera frase corta. Segunda frase, que estamos leyendo ahora mismo. Tercera."
+
+    @Test
+    fun resumesAtStartOfCurrentSentence() {
+        val inSecond = text.indexOf("leyendo")
+        assertEquals(text.indexOf("Segunda"), SpeechText.resumePoint(text, inSecond))
+    }
+
+    @Test
+    fun resumesAtStartWhenInFirstSentence() {
+        assertEquals(0, SpeechText.resumePoint(text, text.indexOf("corta")))
+        assertEquals(0, SpeechText.resumePoint(text, 0))
+    }
+
+    @Test
+    fun atSentenceStartStaysThere() {
+        val third = text.indexOf("Tercera")
+        assertEquals(third, SpeechText.resumePoint(text, third))
+    }
+
+    @Test
+    fun veryLongSentenceResumesAtCurrentWord() {
+        val long = "Inicio. " + "palabra ".repeat(60) + "objetivo y más palabras después"
+        val target = long.indexOf("objetivo")
+        // Pointing into the middle of the word still goes back to its start.
+        assertEquals(target, SpeechText.resumePoint(long, target + 3))
+    }
+
+    @Test
+    fun outOfRangeOffsetsAreClamped() {
+        assertEquals(0, SpeechText.resumePoint(text, -5))
+        assertEquals(text.indexOf("Tercera"), SpeechText.resumePoint(text, 10_000))
+    }
 }

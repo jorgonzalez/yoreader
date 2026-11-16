@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -47,6 +48,14 @@ class ArticleSpeaker(context: Context) {
     private var pendingStart: (() -> Unit)? = null
 
     private var chunks: List<String> = emptyList()
+    /**
+     * Character offset, within the chunk being read, of the word being spoken (from
+     * onRangeStart). Lets a speed change or pause continue near where the listener is,
+     * instead of from the start of the chunk. Stays 0 on engines that don't report it.
+     */
+    @Volatile private var spokenOffset = 0
+    /** Where to continue after a pause: chunk offset of the interrupted sentence/word. */
+    private var resumeOffset = 0
     private var locale: Locale = Locale.getDefault()
     /** Bumped on every start/stop so callbacks from an older run are ignored. */
     @Volatile private var session = 0
@@ -81,16 +90,18 @@ class ArticleSpeaker(context: Context) {
         if (s.status != Status.SPEAKING) return
         session++ // the stop below triggers callbacks we don't want to act on
         tts?.stop()
+        resumeOffset = currentResumePoint(s.position)
         _state.update { it.copy(status = Status.PAUSED) }
     }
 
-    /** Continues from the start of the chunk that was interrupted. */
+    /** Continues from the sentence (or word) that was interrupted. */
     fun resume() {
         val s = _state.value
         if (s.status != Status.PAUSED) return
         session++
         _state.update { it.copy(status = Status.PREPARING) }
-        withEngine { speakFrom(s.position) }
+        val offset = resumeOffset
+        withEngine { speakFrom(s.position, offset) }
     }
 
     fun stop() {
@@ -109,12 +120,13 @@ class ArticleSpeaker(context: Context) {
         _rate.value = value
         prefs.edit().putFloat(KEY_RATE, value).apply()
         // Engines apply a new rate only to text queued after it, so re-queue from the
-        // part being read; it restarts at the new speed.
+        // sentence being read (or the word, in a very long sentence) at the new speed.
         val s = _state.value
         if (s.status == Status.SPEAKING && engineReady) {
+            val offset = currentResumePoint(s.position)
             session++
             tts?.stop()
-            speakFrom(s.position)
+            speakFrom(s.position, offset)
         }
     }
 
@@ -148,7 +160,11 @@ class ArticleSpeaker(context: Context) {
         }
     }
 
-    private fun speakFrom(index: Int) {
+    private fun currentResumePoint(index: Int): Int =
+        chunks.getOrNull(index)?.let { SpeechText.resumePoint(it, spokenOffset) } ?: 0
+
+    /** Queues chunk [index] from character [offset], then all following chunks. */
+    private fun speakFrom(index: Int, offset: Int = 0) {
         val engine = tts ?: return
         val result = engine.setLanguage(locale)
         if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
@@ -158,11 +174,26 @@ class ArticleSpeaker(context: Context) {
         }
         engine.setSpeechRate(_rate.value)
         val run = session
-        for (i in index until chunks.size) {
-            val mode = if (i == index) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD
-            engine.speak(chunks[i], mode, null, "$run:$i")
+        // Nothing left in this chunk (interrupted on its last word): start at the next.
+        var first = index
+        var start = offset
+        if (chunks.getOrNull(first)?.substring(start.coerceAtMost(chunks[first].length))?.isBlank() == true) {
+            first++
+            start = 0
         }
-        _state.update { it.copy(status = Status.SPEAKING, position = index) }
+        if (first >= chunks.size) {
+            session++
+            _state.value = State()
+            return
+        }
+        spokenOffset = start
+        Log.d(TAG, "Reading part ${first + 1}/${chunks.size} from character $start of ${chunks[first].length}")
+        for (i in first until chunks.size) {
+            val mode = if (i == first) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD
+            val from = if (i == first) start else 0
+            engine.speak(chunks[i].substring(from), mode, null, "$run:$i:$from")
+        }
+        _state.update { it.copy(status = Status.SPEAKING, position = first) }
     }
 
     private fun fail(message: String) {
@@ -171,25 +202,38 @@ class ArticleSpeaker(context: Context) {
     }
 
     private companion object {
+        const val TAG = "ArticleSpeaker"
         const val PREFS = "speech"
         const val KEY_RATE = "rate"
     }
 
-    /** Utterance ids are "<session>:<chunk index>". */
-    private fun parse(id: String?): Pair<Int, Int>? {
+    /** Utterance ids are "<session>:<chunk index>:<offset of the spoken text in the chunk>". */
+    private data class Utterance(val run: Int, val index: Int, val offset: Int)
+
+    private fun parse(id: String?): Utterance? {
         val parts = id?.split(':') ?: return null
-        return parts.getOrNull(0)?.toIntOrNull()?.let { s -> parts.getOrNull(1)?.toIntOrNull()?.let { s to it } }
+        val run = parts.getOrNull(0)?.toIntOrNull() ?: return null
+        val index = parts.getOrNull(1)?.toIntOrNull() ?: return null
+        return Utterance(run, index, parts.getOrNull(2)?.toIntOrNull() ?: 0)
     }
 
     private val listener = object : UtteranceProgressListener() {
         override fun onStart(utteranceId: String?) {
-            val (run, index) = parse(utteranceId) ?: return
+            val (run, index, offset) = parse(utteranceId) ?: return
             if (run != session) return
+            spokenOffset = offset
             _state.update { it.copy(status = Status.SPEAKING, position = index) }
         }
 
+        /** The engine is about to speak text[start, end) of this utterance. */
+        override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
+            val (run, _, offset) = parse(utteranceId) ?: return
+            if (run != session) return
+            spokenOffset = offset + start
+        }
+
         override fun onDone(utteranceId: String?) {
-            val (run, index) = parse(utteranceId) ?: return
+            val (run, index, _) = parse(utteranceId) ?: return
             if (run != session) return
             if (index == chunks.lastIndex) {
                 session++
@@ -199,12 +243,12 @@ class ArticleSpeaker(context: Context) {
 
         @Deprecated("Deprecated in Java")
         override fun onError(utteranceId: String?) {
-            val (run, _) = parse(utteranceId) ?: return
+            val (run, _, _) = parse(utteranceId) ?: return
             if (run == session) fail("Text-to-speech stopped with an error")
         }
 
         override fun onError(utteranceId: String?, errorCode: Int) {
-            val (run, _) = parse(utteranceId) ?: return
+            val (run, _, _) = parse(utteranceId) ?: return
             if (run == session) fail("Text-to-speech stopped with an error ($errorCode)")
         }
     }

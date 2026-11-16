@@ -66,6 +66,25 @@ object SpeechText {
         return out
     }
 
+    /**
+     * Where to continue reading [text] after an interruption (speed change, pause) at
+     * character [offset]: the start of the sentence being read, so the listener hears
+     * it whole; but if that is more than [maxBack] characters back (a very long
+     * sentence), the start of the current word instead.
+     */
+    fun resumePoint(text: String, offset: Int, maxBack: Int = 150): Int {
+        val o = offset.coerceIn(0, text.length)
+        var sentenceStart = 0
+        for (m in SENTENCE_END.findAll(text)) {
+            val next = m.range.last + 1
+            if (next <= o) sentenceStart = next else break
+        }
+        if (o - sentenceStart <= maxBack) return sentenceStart
+        var word = o
+        while (word > 0 && !text[word - 1].isWhitespace()) word--
+        return word
+    }
+
     private fun hardSplit(s: String, max: Int): List<String> {
         if (s.length <= max) return listOf(s)
         val parts = mutableListOf<String>()

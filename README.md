@@ -40,7 +40,8 @@ Sources, groups, feed fetching, the article list and a basic reader work.
   - **Search**: sources (title, URL) and articles (title, summary, text), with
     saved matches listed separately. Ignores case and accents ("camion" finds
     "camión"), using `Article.searchText`, a folded plain-text copy (schema v3).
-  - **Articles** (all, one group, or one source): newest first, All/Unread filter,
+  - **Articles** (all, one group, or one source): newest first, unread only by
+    default (an "All" chip shows read ones too),
     pull to refresh, mark all as read. In a group there is an "Add source" button
     (a URL that is already a source elsewhere is linked to the group) and an
     "Edit group" button
@@ -63,7 +64,9 @@ Sources, groups, feed fetching, the article list and a basic reader work.
   accepts. Language per article from its text (Spanish/English function words),
   falling back to the feed's language. A "now playing" bar above the bottom bar
   shows progress, speed − / + (0.5× to 3×, remembered), pause/resume and stop on
-  every screen. Not yet: a foreground
+  every screen. Speed changes and pause/resume continue from the start of the
+  sentence being read (or the current word in a very long sentence), using the
+  engine's word-position callbacks. Not yet: a foreground
   media service (so reading may stop if Android kills the app in the background),
   lock-screen controls.
   - **Edit group**: rename, delete, add a source by URL, remove sources

@@ -11,6 +11,16 @@ page into readable article text.
 when asked. What's in each version: [CHANGELOG.md](CHANGELOG.md). All versions are
 in [releases/](releases/).
 
+SHA-256 of `yoreader-0.2.0.apk`:
+
+```
+ca64d5eaf02617e1f508d03b1c80a5c48f92f4fe1de3ada02478035822c0d8ef
+```
+
+To check a download, compare it with the output of `shasum -a 256 yoreader-0.2.0.apk`
+(macOS), `sha256sum yoreader-0.2.0.apk` (Linux) or
+`Get-FileHash yoreader-0.2.0.apk` (Windows PowerShell).
+
 ## Features
 
 - **Dark only.** One dark Material 3 scheme, no light theme.
@@ -134,7 +144,10 @@ update an installed yoreader. To publish:
 1. Raise `appVersionName` in `app/build.gradle.kts` and add a `CHANGELOG.md` entry.
 2. Commit, so the build carries a clean commit id.
 3. `./gradlew assembleRelease` → `app/build/outputs/apk/release/yoreader-<version>.apk`.
-4. Copy it to `releases/`, update the Download link above, commit and push.
+4. Copy it to `releases/`; update the Download link and the SHA-256 above
+   (`shasum -a 256 releases/yoreader-<version>.apk`); commit and push.
+5. Tag that commit and push the tag:
+   `git tag -a v<version> -m "yoreader <version>" && git push origin v<version>`.
 
 ## Roadmap
 

@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -24,6 +26,19 @@ val gitCommitCount = git("rev-list", "--count", "HEAD")?.toIntOrNull() ?: 1
 val gitCommit = (git("rev-parse", "--short", "HEAD") ?: "unknown") +
     if (git("status", "--porcelain") != null) "-dirty" else ""
 
+// --- Release signing --------------------------------------------------------------
+// The key lives outside the repository. local.properties (git-ignored) points to a
+// properties file with storeFile, storePassword, keyAlias and keyPassword. Without
+// it, release builds are produced unsigned (and can't be installed).
+val signingProps: Properties? = run {
+    val local = Properties()
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(local::load)
+    val path = local.getProperty("yoreader.signing.properties") ?: return@run null
+    val file = file(path)
+    if (!file.exists()) return@run null
+    Properties().apply { file.inputStream().use(::load) }
+}
+
 android {
     namespace = "com.yoreader.app"
     compileSdk = 35
@@ -37,9 +52,32 @@ android {
         buildConfigField("String", "GIT_COMMIT", "\"$gitCommit\"")
     }
 
+    signingConfigs {
+        if (signingProps != null) {
+            create("release") {
+                storeFile = file(signingProps.getProperty("storeFile"))
+                storePassword = signingProps.getProperty("storePassword")
+                keyAlias = signingProps.getProperty("keyAlias")
+                keyPassword = signingProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
+        }
+    }
+
+    // APK names: yoreader-0.2.0.apk (release), yoreader-0.2.0-debug.apk (debug).
+    @Suppress("DEPRECATION")
+    applicationVariants.all {
+        val variant = this
+        outputs.all {
+            val suffix = if (variant.buildType.name == "release") "" else "-${variant.buildType.name}"
+            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
+                "yoreader-${variant.versionName}$suffix.apk"
         }
     }
 

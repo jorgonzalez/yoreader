@@ -4,6 +4,13 @@ An Android RSS reader with a dark UI, user-managed source groups, text-to-speech
 reading (Spanish and English), and a one-tap "clean up" that turns a cluttered web
 page into readable article text.
 
+## Download
+
+**[yoreader-0.2.0.apk](https://github.com/jorgonzalez/yoreader/raw/main/releases/yoreader-0.2.0.apk)**
+(Android 8.0 or newer). Open it on the phone and allow installing from that source
+when asked. What's in each version: [CHANGELOG.md](CHANGELOG.md). All versions are
+in [releases/](releases/).
+
 ## Features
 
 - **Dark only.** One dark Material 3 scheme, no light theme.
@@ -110,6 +117,24 @@ Sources, groups, feed fetching, the article list and a basic reader work.
 `CHANGELOG.md` entry when something notable is ready). The build number is the git
 commit count and each build embeds its commit id (`-dirty` if built with uncommitted
 changes); the side menu shows all three, e.g. `yoreader 0.2.0 · build 12 · b6a79a3`.
+
+## Publishing a release
+
+Release APKs are signed with the yoreader key, kept outside the repository. Its
+properties file (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`) is named in
+the git-ignored `local.properties`:
+
+```
+yoreader.signing.properties=/path/to/apk-keys/yoreader-release.properties
+```
+
+Keep the key and its password backed up: an app signed with a different key can't
+update an installed yoreader. To publish:
+
+1. Raise `appVersionName` in `app/build.gradle.kts` and add a `CHANGELOG.md` entry.
+2. Commit, so the build carries a clean commit id.
+3. `./gradlew assembleRelease` → `app/build/outputs/apk/release/yoreader-<version>.apk`.
+4. Copy it to `releases/`, update the Download link above, commit and push.
 
 ## Roadmap
 

@@ -61,8 +61,12 @@ Sources, groups, feed fetching, the article list and a basic reader work.
   the reader then says why it couldn't clean.
 - **Read aloud** (`tts/`): Android TextToSpeech, one app-wide `ArticleSpeaker`.
   Reads the version on screen (cleaned if shown), title first, in chunks the engine
-  accepts. Language per article from its text (Spanish/English function words),
-  falling back to the feed's language. A "now playing" bar above the bottom bar
+  accepts. Language per article from its text (Spanish/English function words,
+  plus ñ/accents/¿¡ as strong Spanish evidence), falling back to the feed's
+  declared language (often wrong: many Spanish blogs declare en-US). An ES/EN
+  button in the now-playing bar switches the voice mid-article and remembers the
+  choice per source (feed, or website for in-app pages), which then wins over
+  detection. A "now playing" bar above the bottom bar
   shows progress, speed − / + (0.5× to 3×, remembered), pause/resume and stop on
   every screen. Speed changes and pause/resume continue from the start of the
   sentence being read (or the current word in a very long sentence), using the

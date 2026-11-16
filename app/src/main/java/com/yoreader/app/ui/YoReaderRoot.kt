@@ -136,6 +136,7 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                         rate = speechRate,
                         onSlower = speaker::slower,
                         onFaster = speaker::faster,
+                        onSwitchLanguage = speaker::switchLanguage,
                         onOpen = {
                             val page = speech.pageUrl
                             val route = if (page != null) webRoute(page) else speech.articleId?.let { "article/$it" }

@@ -2,6 +2,7 @@ package com.yoreader.app.ui.shell
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,6 +20,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,7 +34,7 @@ import com.yoreader.app.tts.SpeechRate
 
 /**
  * Strip above the bottom bar while an article is being read aloud: title and progress
- * (tap to open the article), speed − / +, pause/resume and stop.
+ * (tap to open the article), voice language (ES/EN), speed − / +, pause/resume and stop.
  */
 @Composable
 fun NowPlayingBar(
@@ -40,6 +42,7 @@ fun NowPlayingBar(
     rate: Float,
     onSlower: () -> Unit,
     onFaster: () -> Unit,
+    onSwitchLanguage: () -> Unit,
     onOpen: () -> Unit,
     onPlayPause: () -> Unit,
     onStop: () -> Unit,
@@ -76,6 +79,22 @@ fun NowPlayingBar(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                     )
+                }
+                // Voice language: tap to switch between Spanish and English.
+                TextButton(
+                    onClick = onSwitchLanguage,
+                    contentPadding = PaddingValues(horizontal = 6.dp),
+                    modifier = Modifier
+                        .widthIn(min = 40.dp)
+                        .semantics {
+                            contentDescription = if (state.language == "es") {
+                                "Reading in Spanish. Switch to English"
+                            } else {
+                                "Reading in English. Switch to Spanish"
+                            }
+                        },
+                ) {
+                    Text(state.language.uppercase(), style = MaterialTheme.typography.labelLarge)
                 }
                 // Speed: − 1.25× +
                 IconButton(

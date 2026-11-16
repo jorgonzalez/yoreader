@@ -29,6 +29,8 @@ class ArticleSpeaker(context: Context) {
         val error: String? = null,
         /** Set when reading a web page opened in the app rather than a stored article. */
         val pageUrl: String? = null,
+        /** "es" or "en": the voice being used. */
+        val language: String = "en",
     ) {
         val isActive get() = articleId != null && status != Status.IDLE
     }
@@ -54,6 +56,8 @@ class ArticleSpeaker(context: Context) {
      * instead of from the start of the chunk. Stays 0 on engines that don't report it.
      */
     @Volatile private var spokenOffset = 0
+    /** Identifies where the text comes from ("feed:12", "site:elplural.com"), for language choices. */
+    private var sourceKey: String? = null
     /** Where to continue after a pause: chunk offset of the interrupted sentence/word. */
     private var resumeOffset = 0
     private var locale: Locale = Locale.getDefault()
@@ -71,17 +75,22 @@ class ArticleSpeaker(context: Context) {
         paragraphs: List<String>,
         language: String?,
         pageUrl: String? = null,
+        sourceKey: String? = null,
     ) {
         val text = SpeechText.chunks(listOf(title) + paragraphs)
         if (text.isEmpty()) return
         session++
         chunks = text
-        locale = when (language) {
-            "es" -> Locale("es", "ES")
-            "en" -> Locale.US
-            else -> Locale.getDefault()
-        }
-        _state.value = State(Status.PREPARING, articleId, title, 0, text.size, pageUrl = pageUrl)
+        this.sourceKey = sourceKey
+        // A language the user picked for this source wins over detection.
+        val lang = sourceKey?.let { prefs.getString(KEY_LANG_PREFIX + it, null) }
+            ?: language?.takeIf { it in SUPPORTED }
+            ?: Locale.getDefault().language.takeIf { it in SUPPORTED }
+            ?: "en"
+        locale = localeFor(lang)
+        _state.value = State(
+            Status.PREPARING, articleId, title, 0, text.size, pageUrl = pageUrl, language = lang,
+        )
         withEngine { speakFrom(0) }
     }
 
@@ -128,6 +137,34 @@ class ArticleSpeaker(context: Context) {
             tts?.stop()
             speakFrom(s.position, offset)
         }
+    }
+
+    /**
+     * Switches between Spanish and English for what's being read, continuing from the
+     * current sentence, and remembers the choice for this source (feed or website).
+     */
+    fun switchLanguage() {
+        val s = _state.value
+        if (!s.isActive) return
+        val lang = if (s.language == "es") "en" else "es"
+        sourceKey?.let { prefs.edit().putString(KEY_LANG_PREFIX + it, lang).apply() }
+        locale = localeFor(lang)
+        _state.update { it.copy(language = lang) }
+        when (s.status) {
+            Status.SPEAKING -> if (engineReady) {
+                val offset = currentResumePoint(s.position)
+                session++
+                tts?.stop()
+                speakFrom(s.position, offset)
+            }
+            // Paused or starting: the new locale applies when speech (re)starts.
+            Status.PAUSED, Status.PREPARING, Status.IDLE -> Unit
+        }
+    }
+
+    private fun localeFor(lang: String): Locale = when (lang) {
+        "es" -> Locale("es", "ES")
+        else -> Locale.US
     }
 
     fun clearError() = _state.update { it.copy(error = null) }
@@ -205,6 +242,8 @@ class ArticleSpeaker(context: Context) {
         const val TAG = "ArticleSpeaker"
         const val PREFS = "speech"
         const val KEY_RATE = "rate"
+        const val KEY_LANG_PREFIX = "lang:"
+        val SUPPORTED = setOf("es", "en")
     }
 
     /** Utterance ids are "<session>:<chunk index>:<offset of the spoken text in the chunk>". */

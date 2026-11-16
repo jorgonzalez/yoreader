@@ -18,22 +18,31 @@ object SpeechText {
         "they", "his", "her", "which", "were", "their", "will", "would", "an", "or", "its",
     )
 
+    /** Letters and marks that (almost) only Spanish uses among the two languages. */
+    private val SPANISH_CHARS = setOf('ñ', 'á', 'é', 'í', 'ó', 'ú', '¿', '¡')
+
     /**
-     * "es" or "en" from the most common function words in [text], or null when there
-     * aren't enough of them to tell (short or other-language text).
+     * "es" or "en" for [text], or null when it can't tell. Counts the most common
+     * function words of each language; Spanish-only characters (ñ, accents, ¿ ¡) add
+     * strong evidence, so even a short summary is usually enough.
      */
     fun guessLanguage(text: String): String? {
-        var es = 0
-        var en = 0
-        for (match in WORD.findAll(text.take(5_000))) {
+        val sample = text.take(5_000)
+        var es = 0.0
+        var en = 0.0
+        for (match in WORD.findAll(sample)) {
             val w = match.value.lowercase(Locale.ROOT)
             if (w in SPANISH) es++
             if (w in ENGLISH) en++
         }
-        if (es + en < 8) return null
+        // Each Spanish character counts like half a function word, capped so a few
+        // accented names in an English text don't flip it.
+        val marks = sample.lowercase(Locale.ROOT).count { it in SPANISH_CHARS }
+        es += minOf(marks * 0.5, maxOf(6.0, en))
+        if (es + en < 4) return null
         return when {
-            es > en * 1.5 -> "es"
-            en > es * 1.5 -> "en"
+            es > en * 1.3 -> "es"
+            en > es * 1.3 -> "en"
             else -> null
         }
     }

@@ -113,6 +113,7 @@ class WebPageViewModel(
             paragraphs = page.text.split("\n\n").filter { it.isNotBlank() },
             language = page.language,
             pageUrl = page.url,
+            sourceKey = "site:${page.host}",
         )
     }
 

@@ -88,4 +88,22 @@ class SpeechTextTest {
         assertEquals(0, SpeechText.resumePoint(text, -5))
         assertEquals(text.indexOf("Tercera"), SpeechText.resumePoint(text, 10_000))
     }
+
+    @Test
+    fun shortSpanishSummaryIsSpanish() {
+        // Few function words, but accents give it away (feeds often say en-US anyway).
+        assertEquals("es", SpeechText.guessLanguage("¿Turistas que pagan 1.000 euros por noche en Madrid? Son y serán una ínfima minoría"))
+        assertEquals("es", SpeechText.guessLanguage("Moscú, la tercera Roma: el invento que justifica casi todo desde el siglo XVI"))
+    }
+
+    @Test
+    fun englishWithSpanishNamesStaysEnglish() {
+        assertEquals(
+            "en",
+            SpeechText.guessLanguage(
+                "José Mourinho said on Sunday that the team will travel to Málaga and Cádiz, " +
+                    "and that he is not worried about the results of the last games of the season."
+            ),
+        )
+    }
 }

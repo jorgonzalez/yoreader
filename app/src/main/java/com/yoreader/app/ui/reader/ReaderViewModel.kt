@@ -119,7 +119,7 @@ class ReaderViewModel(
         }
         val language = SpeechText.guessLanguage(a.title + "\n" + paragraphs.joinToString("\n"))
             ?: a.language
-        speaker.play(a.id, a.title, paragraphs, language)
+        speaker.play(a.id, a.title, paragraphs, language, sourceKey = "feed:${a.feedId}")
     }
 
     companion object {

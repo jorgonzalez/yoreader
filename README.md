@@ -41,7 +41,8 @@ Sources, groups, feed fetching, the article list and a basic reader work.
     saved matches listed separately. Ignores case and accents ("camion" finds
     "camión"), using `Article.searchText`, a folded plain-text copy (schema v3).
   - **Articles** (all, one group, or one source): newest first, unread only by
-    default (an "All" chip shows read ones too),
+    default (an "All" chip shows read ones too), with the number of listed
+    articles in a circle next to the filter chips,
     pull to refresh, mark all as read. In a group there is an "Add source" button
     (a URL that is already a source elsewhere is linked to the group) and an
     "Edit group" button

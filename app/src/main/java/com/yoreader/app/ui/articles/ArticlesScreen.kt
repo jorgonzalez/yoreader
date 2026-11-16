@@ -1,15 +1,19 @@
 package com.yoreader.app.ui.articles
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -21,6 +25,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -36,7 +41,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.yoreader.app.data.ArticleListRow
@@ -155,6 +163,7 @@ fun ArticlesScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     FilterChip(
                         selected = unreadOnly,
@@ -166,6 +175,7 @@ fun ArticlesScreen(
                         onClick = { onSetUnreadOnly(false) },
                         label = { Text("All") },
                     )
+                    articles?.let { CountBadge(it.size, unreadOnly) }
                 }
             }
 
@@ -218,6 +228,30 @@ fun ArticlesScreen(
                 onMarkAllRead()
                 confirmMarkAll = false
             },
+        )
+    }
+}
+
+/**
+ * How many articles the list shows (unread ones, or all), in a circle that widens into
+ * a pill for long numbers.
+ */
+@Composable
+private fun CountBadge(count: Int, unreadOnly: Boolean) {
+    Box(
+        modifier = Modifier
+            .defaultMinSize(minWidth = 30.dp, minHeight = 30.dp)
+            .background(MaterialTheme.colorScheme.primary, CircleShape)
+            .padding(horizontal = 7.dp)
+            .semantics {
+                contentDescription = if (unreadOnly) "$count unread articles" else "$count articles"
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            count.toString(),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onPrimary,
         )
     }
 }

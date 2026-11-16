@@ -2,6 +2,8 @@ package com.yoreader.app.ui
 
 import android.app.Application
 import android.database.sqlite.SQLiteConstraintException
+import android.net.Uri
+import android.util.Xml
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.withTransaction
@@ -11,13 +13,23 @@ import com.yoreader.app.data.FeedGroup
 import com.yoreader.app.data.FeedGroupCrossRef
 import com.yoreader.app.data.FeedUrl
 import com.yoreader.app.data.GroupWithFeeds
+import com.yoreader.app.data.Opml
+import com.yoreader.app.data.OpmlException
+import com.yoreader.app.data.OpmlFeed
 import com.yoreader.app.fetch.RefreshScheduler
+import java.io.IOException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** A source plus the ids of the groups it belongs to and its article counts. */
 data class SourceItem(
@@ -131,6 +143,116 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun refreshAll() = RefreshScheduler.refreshAllNow(getApplication())
+
+    private val _messages = Channel<String>(Channel.BUFFERED)
+    /** One-off messages for a snackbar (import/export results). */
+    val messages: Flow<String> = _messages.receiveAsFlow()
+
+    /** Writes all sources and groups as OPML to [uri] (from the system "save" picker). */
+    fun exportOpml(uri: Uri) {
+        viewModelScope.launch {
+            val message = try {
+                val groups = groupDao.observeGroupsWithFeeds().first()
+                val feeds = feedDao.getAll()
+                val xml = Opml.write(groups, feeds)
+                withContext(Dispatchers.IO) {
+                    getApplication<Application>().contentResolver.openOutputStream(uri, "wt")
+                        ?.use { it.write(xml.toByteArray(Charsets.UTF_8)) }
+                        ?: throw IOException("can't open file")
+                }
+                "Exported ${countText(feeds.size, "source", "sources")} " +
+                    "and ${countText(groups.size, "group", "groups")}"
+            } catch (e: Exception) {
+                "Couldn't save the file"
+            }
+            _messages.send(message)
+        }
+    }
+
+    /**
+     * Adds the sources in the OPML file at [uri]: new feeds are created and fetched,
+     * folders become groups (created if missing), and feeds already in the library are
+     * just added to those groups. Nothing is removed.
+     */
+    fun importOpml(uri: Uri) {
+        viewModelScope.launch {
+            val message = try {
+                val entries = withContext(Dispatchers.IO) {
+                    getApplication<Application>().contentResolver.openInputStream(uri)
+                        ?.use { Opml.parse(it, Xml.newPullParser()) }
+                        ?: throw IOException("can't open file")
+                }
+                val result = db.withTransaction { importEntries(entries) }
+                if (result.newFeeds > 0) RefreshScheduler.refreshAllNow(getApplication())
+                result.describe()
+            } catch (e: OpmlException) {
+                e.message ?: "The file isn't valid OPML"
+            } catch (e: Exception) {
+                "Couldn't read the file"
+            }
+            _messages.send(message)
+        }
+    }
+
+    private data class ImportResult(val newFeeds: Int, val existingFeeds: Int, val newGroups: Int, val skipped: Int) {
+        fun describe(): String {
+            if (newFeeds == 0 && existingFeeds == 0) return "No sources found in the file"
+            val parts = mutableListOf("Imported ${countText(newFeeds, "new source", "new sources")}")
+            if (newGroups > 0) parts += countText(newGroups, "group", "groups")
+            var text = parts.joinToString(" and ")
+            if (existingFeeds > 0) text += "; $existingFeeds already there"
+            if (skipped > 0) text += "; $skipped skipped (invalid address)"
+            return text
+        }
+    }
+
+    private suspend fun importEntries(entries: List<OpmlFeed>): ImportResult {
+        val feedsByKey = feedDao.getAll().associateBy { FeedUrl.key(it.url) }.toMutableMap()
+        val groups = groupDao.observeGroupsWithFeeds().first().map { it.group }
+        val groupIds = groups.associate { it.name.lowercase() to it.id }.toMutableMap()
+        var nextPosition = (groups.maxOfOrNull { it.position } ?: -1) + 1
+        var newFeeds = 0
+        var existingFeeds = 0
+        var newGroups = 0
+        var skipped = 0
+
+        for (entry in entries) {
+            val url = FeedUrl.normalize(entry.url)
+            if (url == null) {
+                skipped++
+                continue
+            }
+            val key = FeedUrl.key(url)
+            val feedId = feedsByKey[key]?.id?.also { existingFeeds++ } ?: run {
+                val feed = Feed(
+                    title = entry.title ?: FeedUrl.defaultTitle(url),
+                    url = url,
+                    siteUrl = entry.siteUrl,
+                )
+                val id = feedDao.insert(feed)
+                if (id == -1L) return@run null
+                newFeeds++
+                feedsByKey[key] = feed.copy(id = id)
+                id
+            } ?: continue
+
+            for (name in entry.groups) {
+                val groupId = groupIds[name.lowercase()] ?: run {
+                    val id = groupDao.insertGroup(FeedGroup(name = name, position = nextPosition++))
+                    if (id == -1L) return@run null
+                    newGroups++
+                    groupIds[name.lowercase()] = id
+                    id
+                } ?: continue
+                groupDao.addFeedToGroup(FeedGroupCrossRef(feedId, groupId))
+            }
+        }
+        return ImportResult(newFeeds, existingFeeds, newGroups, skipped)
+    }
+
+    private companion object {
+        fun countText(n: Int, one: String, many: String) = if (n == 1) "1 $one" else "$n $many"
+    }
 
     fun refreshFeed(feedId: Long) = RefreshScheduler.refreshFeed(getApplication(), feedId)
 

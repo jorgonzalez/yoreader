@@ -76,7 +76,10 @@ Sources, groups, feed fetching, the article list and a basic reader work.
   - **Edit group**: rename, delete, add a source by URL, remove sources
   - **Sources**: add by URL (optionally into groups); tap a source for its articles;
     its menu changes groups, refreshes, or deletes. Each source shows when it was
-    last updated, unread/total articles, or the last error.
+    last updated, unread/total articles, or the last error. The top bar's menu
+    exports all sources and groups to an OPML file, or imports one (from any
+    reader): groups become OPML folders; import only adds (new feeds are fetched,
+    missing groups created, existing feeds just joined to the file's groups).
 - **Feed fetching** (`fetch/`):
   - `FeedParser`: RSS 2.0, RSS 1.0 (RDF) and Atom, on Android's XmlPullParser.
     Handles `content:encoded`, Atom xhtml content, relative links, undeclared
@@ -108,7 +111,7 @@ Sources, groups, feed fetching, the article list and a basic reader work.
 4. **Clean up** - done (per article, from the reader).
 5. **TTS** - read-aloud with speed control done. Still to do: foreground media
    service with lock-screen/notification controls, sentence highlighting.
-6. **Polish** - OPML import/export, offline reading, article search.
+6. **Polish** - OPML import/export and article search done; offline reading to do.
 
 ## Layout
 

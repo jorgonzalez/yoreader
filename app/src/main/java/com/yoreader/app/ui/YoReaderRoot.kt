@@ -377,6 +377,9 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                         refreshing = refreshing,
                         onRefreshAll = vm::refreshAll,
                         onRefreshFeed = vm::refreshFeed,
+                        onExport = vm::exportOpml,
+                        onImport = vm::importOpml,
+                        messages = vm.messages,
                     )
                 }
             }

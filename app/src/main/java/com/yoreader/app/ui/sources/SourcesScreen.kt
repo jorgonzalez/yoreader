@@ -1,6 +1,9 @@
 package com.yoreader.app.ui.sources
 
+import android.net.Uri
 import android.text.format.DateUtils
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,9 +19,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -30,10 +35,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,10 +60,13 @@ import com.yoreader.app.ui.components.EmptyState
 import com.yoreader.app.ui.components.GroupCheckList
 import com.yoreader.app.ui.components.RefreshAction
 import com.yoreader.app.ui.components.TextInputDialog
+import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
 
 /**
  * All sources. Add a source by URL (optionally into groups), tap a source to read its
- * articles; its ⋮ menu changes its groups, refreshes it, or deletes it.
+ * articles; its ⋮ menu changes its groups, refreshes it, or deletes it. The top bar's ⋮
+ * menu exports all sources to an OPML file or imports them from one.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,7 +81,25 @@ fun SourcesScreen(
     refreshing: Boolean,
     onRefreshAll: () -> Unit,
     onRefreshFeed: (feedId: Long) -> Unit,
+    onExport: (Uri) -> Unit,
+    onImport: (Uri) -> Unit,
+    messages: Flow<String>,
 ) {
+    val snackbar = remember { SnackbarHostState() }
+    var menuOpen by remember { mutableStateOf(false) }
+    // System file pickers: "save as" for export, "open" for import. OPML files come
+    // with all sorts of MIME types (or none), so any file can be picked for import.
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/x-opml"),
+    ) { uri -> uri?.let(onExport) }
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri -> uri?.let(onImport) }
+
+    LaunchedEffect(messages) {
+        messages.collect { snackbar.showSnackbar(it) }
+    }
+
     var showAdd by remember { mutableStateOf(false) }
     var editingId by remember { mutableStateOf<Long?>(null) }
     var deleting by remember { mutableStateOf<Feed?>(null) }
@@ -78,6 +107,7 @@ fun SourcesScreen(
     val groupsById = groups.associateBy { it.id }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 title = { Text("Sources") },
@@ -86,7 +116,32 @@ fun SourcesScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-                actions = { RefreshAction(refreshing, onRefreshAll) },
+                actions = {
+                    RefreshAction(refreshing, onRefreshAll)
+                    Box {
+                        IconButton(onClick = { menuOpen = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Import or export sources")
+                        }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Export sources to file") },
+                                leadingIcon = { Icon(Icons.Default.Upload, contentDescription = null) },
+                                onClick = {
+                                    menuOpen = false
+                                    exportLauncher.launch("yoreader-sources-${LocalDate.now()}.opml")
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Import sources from file") },
+                                leadingIcon = { Icon(Icons.Default.Download, contentDescription = null) },
+                                onClick = {
+                                    menuOpen = false
+                                    importLauncher.launch(arrayOf("*/*"))
+                                },
+                            )
+                        }
+                    }
+                },
             )
         },
         floatingActionButton = {

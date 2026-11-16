@@ -21,21 +21,27 @@ import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.yoreader.app.data.ArticleListRow
 import com.yoreader.app.fetch.Html
+import kotlin.math.abs
 
 /** A list row with the HTML excerpt turned into a short plain-text preview. */
 data class ArticleListItem(val row: ArticleListRow, val preview: String)
@@ -48,8 +54,12 @@ internal fun ArticleListRow.toListItem(): ArticleListItem {
 
 enum class SwipeAction { READ, SAVE }
 
+/** A swipe only counts once the card has moved at least this share of its width. */
+private const val MIN_SWIPE_FRACTION = 0.2f
+
 /**
- * An article row. Swipe left toggles read, swipe right toggles saved for later.
+ * An article row. Swipe left toggles read, swipe right toggles saved for later; the
+ * card must be dragged at least 20% of its width (a short flick doesn't count).
  * [onSwipe] performs the action and returns true if the row will leave the list
  * (then it stays swiped away); false makes it spring back.
  */
@@ -64,18 +74,30 @@ internal fun SwipeableArticleRow(
     // (read, saved), so always call the latest onSwipe: it carries the current row.
     // Otherwise a second swipe would act on the row as it was at the first one.
     val currentOnSwipe by rememberUpdatedState(onSwipe)
+    var rowWidth by remember { mutableIntStateOf(0) }
+    // The state's own callback needs to read the state's offset, hence this holder.
+    val stateHolder = remember { arrayOfNulls<SwipeToDismissBoxState>(1) }
     val state = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.Settled) return@rememberSwipeToDismissBoxState true
+            // A quick flick would otherwise count however short it was: require the card
+            // to have actually moved at least MIN_SWIPE_FRACTION of its width.
+            val offset = stateHolder[0]?.let { runCatching { it.requireOffset() }.getOrNull() } ?: 0f
+            if (rowWidth > 0 && abs(offset) < rowWidth * MIN_SWIPE_FRACTION) {
+                return@rememberSwipeToDismissBoxState false
+            }
             when (value) {
                 SwipeToDismissBoxValue.EndToStart -> currentOnSwipe(SwipeAction.READ)
                 SwipeToDismissBoxValue.StartToEnd -> currentOnSwipe(SwipeAction.SAVE)
                 SwipeToDismissBoxValue.Settled -> true
             }
         },
-        positionalThreshold = { distance -> distance * 0.35f },
+        positionalThreshold = { distance -> distance * MIN_SWIPE_FRACTION },
     )
+    stateHolder[0] = state
     SwipeToDismissBox(
         state = state,
+        modifier = Modifier.onSizeChanged { rowWidth = it.width },
         backgroundContent = {
             when (state.dismissDirection) {
                 SwipeToDismissBoxValue.StartToEnd -> SwipeBackground(

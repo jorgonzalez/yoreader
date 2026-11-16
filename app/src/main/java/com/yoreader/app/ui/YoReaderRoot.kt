@@ -116,6 +116,10 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
         }
     }
 
+    val selectedFeedId = backStackEntry
+        ?.takeIf { route == ROUTE_ARTICLES && it.arguments?.getString(ArticlesViewModel.ARG_KIND) == ArticleScope.FEED }
+        ?.arguments?.getLong(ArticlesViewModel.ARG_ID)
+
     fun closeDrawerThen(action: () -> Unit) {
         scope.launch { drawerState.close() }
         action()
@@ -176,6 +180,11 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                     groupUnread = groupUnread,
                     totalUnread = totalUnread,
                     selectedGroupId = selectedGroupId,
+                    feedUnread = sources.orEmpty().associate { it.feed.id to it.unreadCount },
+                    selectedFeedId = selectedFeedId,
+                    onOpenFeed = { id ->
+                        closeDrawerThen { navController.openFromMenu(articlesRoute(ArticleScope.FEED, id)) }
+                    },
                     onOpenAll = { closeDrawerThen { navController.openFromMenu(articlesRoute(ArticleScope.ALL)) } },
                     onOpenGroup = { id ->
                         closeDrawerThen { navController.openFromMenu(articlesRoute(ArticleScope.GROUP, id)) }

@@ -29,7 +29,8 @@ Sources, groups, feed fetching, the article list and a basic reader work.
 - Room data model: `Feed`, `FeedGroup`, `FeedGroupCrossRef` (many-to-many),
   `Article`, plus DAOs and `AppDatabase` (schema v2, with a migration from v1)
 - Layout: an always-visible bottom bar (menu, saved, latest, search) and a side
-  drawer opened from the menu icon (All articles, groups with unread counts, new
+  drawer opened from the menu icon (All articles; groups with unread counts, each
+  expandable to "All in <group>" and its sources with their unread counts; new
   group, manage sources, and an "Add source" button at the bottom).
 - Screens (Navigation Compose):
   - **Latest** (start screen): the newest 20 unread articles that aren't saved,

@@ -1,8 +1,15 @@
 package com.yoreader.app.fetch
 
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Element
+import org.jsoup.nodes.Node
+import org.jsoup.nodes.TextNode
+import org.jsoup.select.NodeTraversor
+import org.jsoup.select.NodeVisitor
+
 /**
- * Tiny HTML helpers that work in plain JVM tests (unlike android.text.Html).
- * Not a sanitizer: only used for titles, previews and feed discovery.
+ * Small HTML helpers that work in plain JVM tests (unlike android.text.Html).
+ * Not a sanitizer: used for titles, previews, feed discovery and text to read aloud.
  */
 object Html {
 
@@ -41,26 +48,43 @@ object Html {
         return WHITESPACE.replace(s, " ").trim()
     }
 
-    private val NON_TEXT = Regex("(?is)<(script|style|noscript|figure|svg|iframe)\\b.*?</\\1\\s*>")
-    private val BLOCK_BREAK = Regex(
-        "(?i)</(p|div|h[1-6]|li|blockquote|section|article|tr|pre|ul|ol|table)\\s*>" +
-            "|<br\\s*/?>|<(p|h[1-6]|li|blockquote|pre)\\b[^>]*>"
-    )
-    private val BLANK_LINES = Regex("\\n\\s*\\n")
+    /** Not read aloud: code, media, figures (captions read aloud are just noise), and
+     * anything the page hides. */
+    private const val SKIPPED =
+        "script, style, noscript, template, figure, svg, iframe, video, audio, button, " +
+            "[hidden], [aria-hidden=true], [style~=(?i)display\\s*:\\s*none], " +
+            "[style~=(?i)visibility\\s*:\\s*hidden]"
 
     /**
      * Readable paragraphs from HTML, for listening and for the cleaned plain text:
-     * block elements become paragraph breaks; scripts, styles and figures (captions
-     * read aloud are just noise) are dropped.
+     * block elements become paragraph breaks; what [SKIPPED] matches is dropped.
+     * Uses a real HTML parser: pages like CNN's put whole HTML snippets inside
+     * attributes (`data-description="<p>…</p>"`), which must never be read out.
      */
     fun toParagraphs(html: String): List<String> {
-        var s = NON_TEXT.replace(html, " ")
-        s = BLOCK_BREAK.replace(s, "\n\n")
-        s = TAG.replace(s, " ")
-        s = decodeEntities(s)
-        return s.split(BLANK_LINES)
-            .map { WHITESPACE.replace(it, " ").trim() }
-            .filter { it.isNotEmpty() }
+        val body = Jsoup.parseBodyFragment(html).body()
+        body.select(SKIPPED).remove()
+        val paragraphs = mutableListOf<String>()
+        val current = StringBuilder()
+        fun endParagraph() {
+            val text = WHITESPACE.replace(current, " ").trim()
+            if (text.isNotEmpty()) paragraphs += text
+            current.setLength(0)
+        }
+        NodeTraversor.traverse(object : NodeVisitor {
+            override fun head(node: Node, depth: Int) {
+                when {
+                    node is TextNode -> current.append(node.wholeText)
+                    node is Element && (node.isBlock || node.normalName() == "br") -> endParagraph()
+                }
+            }
+
+            override fun tail(node: Node, depth: Int) {
+                if (node is Element && node.isBlock) endParagraph()
+            }
+        }, body)
+        endParagraph()
+        return paragraphs
     }
 
     fun escape(s: String): String = buildString(s.length) {

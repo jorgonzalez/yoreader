@@ -65,4 +65,18 @@ class ArticleCleanerTest {
             ),
         )
     }
+
+    @Test
+    fun paragraphsSkipHtmlInAttributesAndHiddenText() {
+        // As on cnnespanol.cnn.com: a video player with HTML inside its attributes.
+        assertEquals(
+            listOf("Visible", "Also visible"),
+            Html.toParagraphs(
+                "<div data-description=\"<p>Secret description</p>\" data-x='a > b'>" +
+                    "<p>Visible</p></div><p hidden>Hidden</p>" +
+                    "<span aria-hidden=\"true\">icon</span><div style=\"display: none\">no</div>" +
+                    "<p>Also visible</p>"
+            ),
+        )
+    }
 }

@@ -6,20 +6,20 @@ page into readable article text.
 
 ## Download
 
-**[yoreader-0.3.0.apk](https://github.com/jorgonzalez/yoreader/raw/main/releases/yoreader-0.3.0.apk)**
+**[yoreader-0.4.0.apk](https://github.com/jorgonzalez/yoreader/raw/main/releases/yoreader-0.4.0.apk)**
 (Android 8.0 or newer). Open it on the phone and allow installing from that source
 when asked. What's in each version: [CHANGELOG.md](CHANGELOG.md). All versions are
 in [releases/](releases/).
 
-SHA-256 of `yoreader-0.3.0.apk`:
+SHA-256 of `yoreader-0.4.0.apk`:
 
 ```
-04561b28c0d4bcbc43d43e2236ec87739e94eeecf8aabae3f4ff9fb12948a39a
+8c8703263483c3bb6935a3b0eb4737066e7455c6602541ad3495ddde06cb99c0
 ```
 
-To check a download, compare it with the output of `shasum -a 256 yoreader-0.3.0.apk`
-(macOS), `sha256sum yoreader-0.3.0.apk` (Linux) or
-`Get-FileHash yoreader-0.3.0.apk` (Windows PowerShell).
+To check a download, compare it with the output of `shasum -a 256 yoreader-0.4.0.apk`
+(macOS), `sha256sum yoreader-0.4.0.apk` (Linux) or
+`Get-FileHash yoreader-0.4.0.apk` (Windows PowerShell).
 
 ## Features
 

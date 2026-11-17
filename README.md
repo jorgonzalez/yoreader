@@ -6,20 +6,20 @@ page into readable article text.
 
 ## Download
 
-**[yoreader-0.4.0.apk](https://github.com/jorgonzalez/yoreader/raw/main/releases/yoreader-0.4.0.apk)**
+**[yoreader-0.5.0.apk](https://github.com/jorgonzalez/yoreader/raw/main/releases/yoreader-0.5.0.apk)**
 (Android 8.0 or newer). Open it on the phone and allow installing from that source
 when asked. What's in each version: [CHANGELOG.md](CHANGELOG.md). All versions are
 in [releases/](releases/).
 
-SHA-256 of `yoreader-0.4.0.apk`:
+SHA-256 of `yoreader-0.5.0.apk`:
 
 ```
-8c8703263483c3bb6935a3b0eb4737066e7455c6602541ad3495ddde06cb99c0
+fcdbef199717e16e0f08ed9eb442d8e9f45fab93db8f0a2747bdb22c2d97d13d
 ```
 
-To check a download, compare it with the output of `shasum -a 256 yoreader-0.4.0.apk`
-(macOS), `sha256sum yoreader-0.4.0.apk` (Linux) or
-`Get-FileHash yoreader-0.4.0.apk` (Windows PowerShell).
+To check a download, compare it with the output of `shasum -a 256 yoreader-0.5.0.apk`
+(macOS), `sha256sum yoreader-0.5.0.apk` (Linux) or
+`Get-FileHash yoreader-0.5.0.apk` (Windows PowerShell).
 
 ## Features
 
@@ -40,7 +40,7 @@ Coroutines/Flow, OkHttp, WorkManager, Readability4J + jsoup, androidx.media
 
 ## Current state
 
-Everything below works and is in version 0.4.0 unless marked otherwise.
+Everything below works and is in version 0.5.0 unless marked otherwise.
 
 - Gradle project (Kotlin DSL, version catalog), minSdk 26, targetSdk 35
 - Room data model: `Feed`, `FeedGroup`, `FeedGroupCrossRef` (many-to-many),

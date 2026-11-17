@@ -4,7 +4,7 @@ Versions are `major.minor.patch`, set in `app/build.gradle.kts` (`appVersionName
 The build number (Android `versionCode`) is the number of git commits, and every
 build records its commit id; both show at the bottom of the side menu.
 
-## Unreleased
+## 0.5.0 - 2026-11-17
 
 - Read aloud keeps going with the screen off or while using other apps. A media
   card in the notification panel and on the lock screen shows the article with

@@ -48,7 +48,9 @@ import kotlinx.coroutines.flow.Flow
 /**
  * One article. Top bar: read aloud, clean up (fetch the page and keep only the article),
  * save for later, share (title and link, to any app), and a menu with mark unread,
- * open the original page (in the app), open in browser and version switching. Links in the text also open in the app.
+ * open the original page (in the app), open in browser and version switching. Links
+ * in the text also open in the app. While the article is read aloud, the paragraph
+ * being read is highlighted and kept in view (until you scroll; Follow brings it back).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,6 +77,13 @@ fun ReaderScreen(
     val hasCleaned = article?.cleanedHtml != null
     val showingCleaned = hasCleaned && !showFeedVersion
     val speechStatus = speech.status.takeIf { article != null && speech.articleId == article.id }
+    // Highlight and follow only when the version on screen is the one being read.
+    val follow = rememberFollowState(
+        speech,
+        readingHere = speechStatus != null && speech.contentKey ==
+            (if (showingCleaned) ReaderViewModel.CONTENT_CLEANED else ReaderViewModel.CONTENT_FEED),
+        pageKey = article?.id,
+    )
 
     LaunchedEffect(messages) {
         messages.collect { snackbar.showSnackbar(it) }
@@ -207,11 +216,25 @@ fun ReaderScreen(
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             if (item != null) {
+                val html = remember(item.article, item.feedTitle, showingCleaned) {
+                    ArticleHtml.build(item.article, item.feedTitle, cleaned = showingCleaned)
+                }
                 ArticleWebView(
-                    html = ArticleHtml.build(item.article, item.feedTitle, cleaned = showingCleaned),
+                    html = html,
                     baseUrl = link ?: item.feedUrl,
                     onLinkClick = onOpenLink,
+                    reading = follow.reading,
+                    follow = follow.following,
+                    onUserScroll = follow.stop,
                 )
+                if (follow.offerFollow) {
+                    FollowButton(
+                        onClick = follow.resume,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp),
+                    )
+                }
             }
         }
     }

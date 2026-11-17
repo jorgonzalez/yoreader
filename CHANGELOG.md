@@ -4,6 +4,13 @@ Versions are `major.minor.patch`, set in `app/build.gradle.kts` (`appVersionName
 The build number (Android `versionCode`) is the number of git commits, and every
 build records its commit id; both show at the bottom of the side menu.
 
+## Unreleased
+
+- Read aloud follows the text: the paragraph being read is highlighted and the
+  page scrolls smoothly to keep it in view (long paragraphs scroll along as
+  they're read). Scrolling by hand stops following; the Follow button brings it
+  back. Works in the reader and in cleaned pages opened from links.
+
 ## 0.5.0 - 2026-11-17
 
 - Read aloud keeps going with the screen off or while using other apps. A media

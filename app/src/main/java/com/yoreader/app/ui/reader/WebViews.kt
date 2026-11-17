@@ -5,6 +5,8 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.view.MotionEvent
+import android.view.ViewConfiguration
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
@@ -26,19 +28,40 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.AndroidView
 import com.yoreader.app.ui.theme.Background
+import java.util.Locale
+import kotlin.math.abs
+
+/** Where reading aloud is in the page shown: see [ArticleHtml.READ_FUNCTION]. */
+internal data class ReadingSpot(val paragraph: Int, val progress: Float)
 
 /**
- * Our own dark-styled HTML (feed content or a cleaned page), JavaScript off.
- * Tapping a link calls [onLinkClick] instead of navigating inside the view.
+ * Our own dark-styled HTML (feed content or a cleaned page). Tapping a link calls
+ * [onLinkClick] instead of navigating inside the view.
+ *
+ * While the article is read aloud, [reading] says where: that paragraph is
+ * highlighted and, with [follow], kept in view. Dragging the page calls [onUserScroll]
+ * (so the screen can stop following). JavaScript is on only for that: [ArticleHtml]
+ * strips the article's own scripts.
  */
+@SuppressLint("SetJavaScriptEnabled", "ClickableViewAccessibility")
 @Composable
-internal fun ArticleWebView(html: String, baseUrl: String, onLinkClick: (String) -> Unit) {
+internal fun ArticleWebView(
+    html: String,
+    baseUrl: String,
+    onLinkClick: (String) -> Unit,
+    reading: ReadingSpot? = null,
+    follow: Boolean = true,
+    onUserScroll: () -> Unit = {},
+) {
     val linkHandler by rememberUpdatedState(onLinkClick)
+    val userScroll by rememberUpdatedState(onUserScroll)
+    // Survives recompositions: whether the page has loaded, and the last call made.
+    val js = remember { ReadingScript() }
     AndroidView(
         factory = { ctx ->
             WebView(ctx).apply {
                 setBackgroundColor(Background.toArgb())
-                settings.javaScriptEnabled = false
+                settings.javaScriptEnabled = true
                 settings.allowFileAccess = false
                 settings.allowContentAccess = false
                 webViewClient = object : WebViewClient() {
@@ -46,20 +69,61 @@ internal fun ArticleWebView(html: String, baseUrl: String, onLinkClick: (String)
                         linkHandler(request.url.toString())
                         return true
                     }
+
+                    override fun onPageFinished(view: WebView, url: String?) {
+                        js.loaded = true
+                        js.applied = null
+                        js.apply(view)
+                    }
+                }
+                val slop = ViewConfiguration.get(ctx).scaledTouchSlop
+                var downY = 0f
+                var dragging = false
+                setOnTouchListener { _, e ->
+                    when (e.actionMasked) {
+                        MotionEvent.ACTION_DOWN -> {
+                            downY = e.y
+                            dragging = false
+                        }
+                        MotionEvent.ACTION_MOVE -> if (!dragging && abs(e.y - downY) > slop) {
+                            dragging = true
+                            userScroll()
+                        }
+                    }
+                    false // the WebView still handles the touch
                 }
             }
         },
-        // Reload only when the content really changed (e.g. not when saving),
-        // so the scroll position is kept.
         update = { view ->
+            // Reload only when the content really changed (e.g. not when saving),
+            // so the scroll position is kept.
             if (view.tag != html) {
                 view.tag = html
+                js.loaded = false
                 view.loadDataWithBaseURL(baseUrl, html, "text/html", "utf-8", null)
             }
+            js.wanted = reading?.let {
+                "${ArticleHtml.READ_FUNCTION}(${it.paragraph}, ${"%.3f".format(Locale.ROOT, it.progress)}, $follow)"
+            } ?: "${ArticleHtml.READ_FUNCTION}(-1, 0, false)"
+            js.apply(view)
         },
         onRelease = { it.destroy() },
         modifier = Modifier.fillMaxSize(),
     )
+}
+
+/** The latest reading-position call for the page, sent once the page has loaded. */
+private class ReadingScript {
+    var loaded = false
+    var wanted: String? = null
+    var applied: String? = null
+
+    fun apply(view: WebView) {
+        val call = wanted ?: return
+        if (!loaded || call == applied) return
+        applied = call
+        view.evaluateJavascript(call, null)
+    }
 }
 
 /**

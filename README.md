@@ -27,8 +27,9 @@ To check a download, compare it with the output of `shasum -a 256 yoreader-0.5.0
 - **Groups.** Sources can be in any number of groups; groups can be created,
   renamed and deleted.
 - **Read aloud.** Android `TextToSpeech`, Spanish and English, language detected per
-  article, with an ES/EN switch and speed control; keeps reading with the screen
-  off, with controls in the notification panel and on the lock screen.
+  article, with an ES/EN switch and speed control; the paragraph being read is
+  highlighted and kept in view; keeps reading with the screen off, with controls
+  in the notification panel and on the lock screen.
 - **Clean up.** Main-content extraction for any article or page you open, in the
   spirit of trafilatura, using Readability4J.
 
@@ -92,6 +93,13 @@ Everything below works and is in version 0.5.0 unless marked otherwise.
   remembered), pause/resume and stop on every screen. Speed changes and
   pause/resume continue from the start of the sentence being read (or the current
   word in a very long sentence), using the engine's word-position callbacks.
+  **Following the text**: in the reader (and in cleaned pages opened from links)
+  the paragraph being read is highlighted and kept in view, scrolling smoothly;
+  long paragraphs scroll along as they're read. Scrolling by hand stops
+  following; a Follow button brings it back. The page and the text read aloud
+  come from one pass over the article HTML (`Html.readable`), which numbers the
+  paragraphs on screen and strips the article's own scripts, so the reader can
+  run its small follow script safely.
   **With the screen off** (`tts/ReadAloudService`): while reading, a foreground
   media service keeps the app running and shows a media card in the notification
   panel and on the lock screen (title, Pause/Resume, Stop). Reading pauses for
@@ -120,8 +128,9 @@ Everything below works and is in version 0.5.0 unless marked otherwise.
   - `RefreshWorker` / `RefreshScheduler`: WorkManager. Every feed is refreshed
     about hourly when online and the battery isn't low; a newly added source is
     fetched immediately; manual refresh from the top bar.
-- **Unit tests** (38): feed parsing, dates, HTML helpers and feed discovery, search
-  folding, OPML, clean up, speech text and speed, and the reader's HTML. Run with
+- **Unit tests** (41): feed parsing, dates, HTML helpers and feed discovery, search
+  folding, OPML, clean up, speech text and speed, and the reader's HTML
+  (paragraph numbering, script stripping). Run with
   `./gradlew :app:testDebugUnitTest`.
 
 ## Open the project
@@ -169,7 +178,8 @@ update an installed yoreader. To publish:
 5. **TTS** - read-aloud with speed control, screen-off playback and
    notification/lock-screen controls done. Still to do: speed changes with no
    repeat at all and headset buttons (both by playing pre-rendered audio in the
-   app), following the text on screen with the current paragraph highlighted.
+   app). Following the text on screen is done, by paragraph; by sentence or word
+   is possible later.
 6. **Polish** - OPML import/export and article search done; offline reading to do.
 7. **Sharing** (idea, not decided) - share articles with contacts inside the app,
    with a comment, over Nostr, with no server of our own.

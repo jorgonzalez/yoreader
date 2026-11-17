@@ -9,9 +9,13 @@ import com.yoreader.app.fetch.FeedParser
 import com.yoreader.app.fetch.FeedRefresher
 import com.yoreader.app.fetch.RefreshScheduler
 import com.yoreader.app.tts.ArticleSpeaker
+import com.yoreader.app.tts.ReadAloudService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 class YoReaderApp : Application() {
     val database: AppDatabase by lazy { AppDatabase.build(this) }
@@ -36,5 +40,14 @@ class YoReaderApp : Application() {
     override fun onCreate() {
         super.onCreate()
         RefreshScheduler.schedulePeriodic(this)
+        // While something is being read, a foreground service keeps it going with the
+        // screen off and shows the controls (notification, lock screen, headset).
+        // Reading only starts from the app's own screens, so the app is in the
+        // foreground then, as Android requires for starting such a service.
+        appScope.launch(Dispatchers.Main) {
+            speaker.state.map { it.isActive }.distinctUntilChanged().collect { active ->
+                if (active) ReadAloudService.start(this@YoReaderApp)
+            }
+        }
     }
 }

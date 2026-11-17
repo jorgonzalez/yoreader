@@ -27,14 +27,16 @@ To check a download, compare it with the output of `shasum -a 256 yoreader-0.4.0
 - **Groups.** Sources can be in any number of groups; groups can be created,
   renamed and deleted.
 - **Read aloud.** Android `TextToSpeech`, Spanish and English, language detected per
-  article, with an ES/EN switch and speed control.
+  article, with an ES/EN switch and speed control; keeps reading with the screen
+  off, with controls in the notification panel and on the lock screen.
 - **Clean up.** Main-content extraction for any article or page you open, in the
   spirit of trafilatura, using Readability4J.
 
 ## Stack
 
 Kotlin, Jetpack Compose (Material 3), Navigation Compose, Room (KSP),
-Coroutines/Flow, OkHttp, WorkManager, Readability4J + jsoup.
+Coroutines/Flow, OkHttp, WorkManager, Readability4J + jsoup, androidx.media
+(media session).
 
 ## Current state
 
@@ -90,8 +92,14 @@ Everything below works and is in version 0.4.0 unless marked otherwise.
   remembered), pause/resume and stop on every screen. Speed changes and
   pause/resume continue from the start of the sentence being read (or the current
   word in a very long sentence), using the engine's word-position callbacks.
-  Not yet: a foreground media service (so reading may stop if Android closes the
-  app in the background) and lock-screen controls.
+  **With the screen off** (`tts/ReadAloudService`): while reading, a foreground
+  media service keeps the app running and shows a media card in the notification
+  panel and on the lock screen (title, Pause/Resume, Stop). Reading pauses for
+  calls and other audio (continuing after short interruptions) and when headphones
+  are unplugged; swiping yoreader away from recent apps stops it. Android 13+ asks
+  for notification permission the first time you listen. Not yet: headset/earbud
+  buttons (Android sends them to the app that plays the audio, which is the speech
+  engine).
 - **Sources** (Manage sources): add by URL (optionally into groups); tap a source
   for its articles; its menu changes groups, refreshes, or deletes. Each source
   shows when it was last updated, unread/total articles, or the last error. The
@@ -158,9 +166,10 @@ update an installed yoreader. To publish:
 3. **Article list and reader** - done. Lists show the newest 1000 articles; there is
    no clean-up of old articles yet.
 4. **Clean up** - done (per article, from the reader).
-5. **TTS** - read-aloud with speed control done. Still to do: foreground media
-   service with lock-screen/notification controls, speed changes with no repeat at
-   all (play pre-rendered audio), sentence highlighting.
+5. **TTS** - read-aloud with speed control, screen-off playback and
+   notification/lock-screen controls done. Still to do: speed changes with no
+   repeat at all and headset buttons (both by playing pre-rendered audio in the
+   app), following the text on screen with the current paragraph highlighted.
 6. **Polish** - OPML import/export and article search done; offline reading to do.
 7. **Sharing** (idea, not decided) - share articles with contacts inside the app,
    with a comment, over Nostr, with no server of our own.

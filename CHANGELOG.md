@@ -4,6 +4,14 @@ Versions are `major.minor.patch`, set in `app/build.gradle.kts` (`appVersionName
 The build number (Android `versionCode`) is the number of git commits, and every
 build records its commit id; both show at the bottom of the side menu.
 
+## Unreleased
+
+- Read aloud keeps going with the screen off or while using other apps. A media
+  card in the notification panel and on the lock screen shows the article with
+  Pause/Resume and Stop. Reading pauses for calls and other audio (and continues
+  after short interruptions) and when headphones are unplugged. Android 13+ asks
+  for permission to show notifications the first time you listen.
+
 ## 0.4.0 - 2026-11-17
 
 - Read aloud no longer reads text that isn't on screen: some pages (e.g. CNN en

@@ -121,6 +121,8 @@ dependencies {
     // "Clean up": main-content extraction from web pages.
     implementation(libs.readability4j)
     implementation(libs.jsoup)
+    // MediaSessionCompat and the media notification style, for read-aloud controls.
+    implementation(libs.androidx.media)
 
     testImplementation(libs.junit)
     // Real XmlPullParser for JVM unit tests (android.jar only has stubs).

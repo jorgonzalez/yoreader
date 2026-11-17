@@ -110,7 +110,8 @@ class WebPageViewModel(
         speaker.play(
             articleId = idFor(page.url),
             title = page.title,
-            paragraphs = page.text.split("\n\n").filter { it.isNotBlank() },
+            // Exactly the paragraphs on screen, so the page can highlight and follow them.
+            paragraphs = ArticleHtml.readable(page.html, page.title).paragraphs,
             language = page.language,
             pageUrl = page.url,
             sourceKey = "site:${page.host}",

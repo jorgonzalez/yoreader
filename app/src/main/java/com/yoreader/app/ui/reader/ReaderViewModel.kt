@@ -106,15 +106,9 @@ class ReaderViewModel(
             }
         }
 
-        val useCleaned = a.cleanedText != null && !showFeedVersion.value
-        val paragraphs = if (useCleaned) {
-            // From the cleaned HTML rather than the stored text, so articles cleaned by
-            // an older version are read with the current rules (what's on screen).
-            a.cleanedHtml?.let(Html::toParagraphs)
-                ?: a.cleanedText!!.split("\n\n").filter { it.isNotBlank() }
-        } else {
-            Html.toParagraphs(a.contentHtml ?: a.summary.orEmpty())
-        }
+        // Exactly the paragraphs on screen, so the reader can highlight and follow them.
+        val useCleaned = a.cleanedHtml != null && !showFeedVersion.value
+        val paragraphs = ArticleHtml.readable(a, cleaned = useCleaned)?.paragraphs.orEmpty()
         if (!useCleaned && paragraphs.sumOf { it.length } < SHORT_TEXT) {
             viewModelScope.launch {
                 _messages.send("The feed only has a short summary. Tap Clean up to get the full article.")
@@ -122,10 +116,18 @@ class ReaderViewModel(
         }
         val language = SpeechText.guessLanguage(a.title + "\n" + paragraphs.joinToString("\n"))
             ?: a.language
-        speaker.play(a.id, a.title, paragraphs, language, sourceKey = "feed:${a.feedId}")
+        speaker.play(
+            a.id, a.title, paragraphs, language,
+            sourceKey = "feed:${a.feedId}",
+            contentKey = if (useCleaned) CONTENT_CLEANED else CONTENT_FEED,
+        )
     }
 
     companion object {
+        /** [ArticleSpeaker.State.contentKey] values: which version is being read. */
+        const val CONTENT_CLEANED = "cleaned"
+        const val CONTENT_FEED = "feed"
+
         const val ARG_ARTICLE_ID = "articleId"
         private const val KEY_SHOW_FEED = "showFeedVersion"
         private const val SHORT_TEXT = 400

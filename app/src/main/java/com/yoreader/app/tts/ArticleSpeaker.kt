@@ -31,6 +31,15 @@ class ArticleSpeaker(context: Context) {
         val pageUrl: String? = null,
         /** "es" or "en": the voice being used. */
         val language: String = "en",
+        /**
+         * The paragraph being read, as an index into title + paragraphs given to [play]
+         * (0 is the title), and how far into it (0..1, by characters). Lets the reader
+         * show and follow the text being read.
+         */
+        val paragraph: Int = 0,
+        val paragraphProgress: Float = 0f,
+        /** Which version of the text is being read (e.g. "cleaned" or "feed"), as given to [play]. */
+        val contentKey: String? = null,
     ) {
         val isActive get() = articleId != null && status != Status.IDLE
     }
@@ -50,6 +59,10 @@ class ArticleSpeaker(context: Context) {
     private var pendingStart: (() -> Unit)? = null
 
     private var chunks: List<String> = emptyList()
+    /** For each chunk: its paragraph (index into title + paragraphs), and where in it it starts. */
+    private var chunkParagraph = IntArray(0)
+    private var chunkStart = IntArray(0)
+    private var paragraphLength = IntArray(0)
     /**
      * Character offset, within the chunk being read, of the word being spoken (from
      * onRangeStart). Lets a speed change or pause continue near where the listener is,
@@ -76,11 +89,25 @@ class ArticleSpeaker(context: Context) {
         language: String?,
         pageUrl: String? = null,
         sourceKey: String? = null,
+        contentKey: String? = null,
     ) {
-        val text = SpeechText.chunks(listOf(title) + paragraphs)
+        val all = listOf(title) + paragraphs
+        // Chunks never span paragraphs (long ones are split), so each chunk maps to one.
+        val pieces = all.flatMapIndexed { i, p ->
+            var start = 0
+            SpeechText.chunks(listOf(p)).map { c ->
+                val at = p.indexOf(c.take(40), start).takeIf { it >= 0 } ?: start
+                start = at + c.length
+                Triple(i, at, c)
+            }
+        }
+        val text = pieces.map { it.third }
         if (text.isEmpty()) return
         session++
         chunks = text
+        chunkParagraph = pieces.map { it.first }.toIntArray()
+        chunkStart = pieces.map { it.second }.toIntArray()
+        paragraphLength = all.map { it.length.coerceAtLeast(1) }.toIntArray()
         this.sourceKey = sourceKey
         // A language the user picked for this source wins over detection.
         val lang = sourceKey?.let { prefs.getString(KEY_LANG_PREFIX + it, null) }
@@ -90,6 +117,7 @@ class ArticleSpeaker(context: Context) {
         locale = localeFor(lang)
         _state.value = State(
             Status.PREPARING, articleId, title, 0, text.size, pageUrl = pageUrl, language = lang,
+            contentKey = contentKey,
         )
         withEngine { speakFrom(0) }
     }
@@ -230,7 +258,15 @@ class ArticleSpeaker(context: Context) {
             val from = if (i == first) start else 0
             engine.speak(chunks[i].substring(from), mode, null, "$run:$i:$from")
         }
-        _state.update { it.copy(status = Status.SPEAKING, position = first) }
+        _state.update { at(it.copy(status = Status.SPEAKING), first, start) }
+    }
+
+    /** [s] positioned at character [offset] of chunk [index]. */
+    private fun at(s: State, index: Int, offset: Int): State {
+        val paragraph = chunkParagraph.getOrElse(index) { 0 }
+        val inParagraph = chunkStart.getOrElse(index) { 0 } + offset
+        val progress = (inParagraph.toFloat() / paragraphLength.getOrElse(paragraph) { 1 }).coerceIn(0f, 1f)
+        return s.copy(position = index, paragraph = paragraph, paragraphProgress = progress)
     }
 
     private fun fail(message: String) {
@@ -261,14 +297,16 @@ class ArticleSpeaker(context: Context) {
             val (run, index, offset) = parse(utteranceId) ?: return
             if (run != session) return
             spokenOffset = offset
-            _state.update { it.copy(status = Status.SPEAKING, position = index) }
+            _state.update { at(it.copy(status = Status.SPEAKING), index, offset) }
         }
 
         /** The engine is about to speak text[start, end) of this utterance. */
         override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
-            val (run, _, offset) = parse(utteranceId) ?: return
+            val (run, index, offset) = parse(utteranceId) ?: return
             if (run != session) return
             spokenOffset = offset + start
+            // Progress moves the view along long paragraphs; per-word updates are cheap.
+            _state.update { if (it.status == Status.SPEAKING) at(it, index, offset + start) else it }
         }
 
         override fun onDone(utteranceId: String?) {

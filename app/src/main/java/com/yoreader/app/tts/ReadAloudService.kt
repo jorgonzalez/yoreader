@@ -31,6 +31,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
@@ -80,7 +82,13 @@ class ReadAloudService : Service() {
             isActive = true
         }
         scope.launch {
-            speaker.state.combine(speaker.rate) { s, r -> s to r }.collect { (s, rate) -> render(s, rate) }
+            speaker.state
+                // The state changes on every word (for following the text); the
+                // notification only cares about these.
+                .map { it.copy(paragraph = 0, paragraphProgress = 0f) }
+                .distinctUntilChanged()
+                .combine(speaker.rate) { s, r -> s to r }
+                .collect { (s, rate) -> render(s, rate) }
         }
     }
 

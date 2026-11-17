@@ -62,6 +62,8 @@ fun WebPageScreen(
     val host = Uri.parse(url).host?.removePrefix("www.") ?: url
     val showingCleaned = showCleaned && cleaned != null
     val speechStatus = speech.status.takeIf { cleaned != null && speech.pageUrl == cleaned.url }
+    // Only the cleaned view is what's read aloud, so only it highlights and follows.
+    val follow = rememberFollowState(speech, readingHere = speechStatus != null && showingCleaned, pageKey = cleaned?.url)
 
     LaunchedEffect(messages) {
         messages.collect { snackbar.showSnackbar(it) }
@@ -134,11 +136,25 @@ fun WebPageScreen(
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             if (showingCleaned && cleaned != null) {
+                val html = remember(cleaned) {
+                    ArticleHtml.webPage(cleaned.title, cleaned.host, cleaned.html, cleaned.language)
+                }
                 ArticleWebView(
-                    html = ArticleHtml.webPage(cleaned.title, cleaned.host, cleaned.html, cleaned.language),
+                    html = html,
                     baseUrl = cleaned.url,
                     onLinkClick = onOpenLink,
+                    reading = follow.reading,
+                    follow = follow.following,
+                    onUserScroll = follow.stop,
                 )
+                if (follow.offerFollow) {
+                    FollowButton(
+                        onClick = follow.resume,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp),
+                    )
+                }
             } else {
                 // Recreated when coming back from the cleaned view, at the current page.
                 key(showingCleaned) {

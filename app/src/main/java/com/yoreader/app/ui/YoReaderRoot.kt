@@ -1,6 +1,11 @@
 package com.yoreader.app.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -23,6 +28,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -88,6 +94,22 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
     val speechRate by speaker.rate.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     // Read-aloud errors (e.g. no voice for the language) can happen on any screen.
+    // Android 13+: the read-aloud controls (notification, lock screen) need permission
+    // to show notifications. Asked the first time reading starts in this session.
+    val notificationPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { /* reading works either way; only the controls are hidden without it */ }
+    var askedNotifications by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(speech.isActive) {
+        if (speech.isActive && !askedNotifications && Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            askedNotifications = true
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
     LaunchedEffect(speech.error) {
         speech.error?.let {
             speaker.clearError()

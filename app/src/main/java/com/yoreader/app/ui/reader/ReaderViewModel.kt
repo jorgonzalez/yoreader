@@ -108,7 +108,10 @@ class ReaderViewModel(
 
         val useCleaned = a.cleanedText != null && !showFeedVersion.value
         val paragraphs = if (useCleaned) {
-            a.cleanedText!!.split("\n\n").filter { it.isNotBlank() }
+            // From the cleaned HTML rather than the stored text, so articles cleaned by
+            // an older version are read with the current rules (what's on screen).
+            a.cleanedHtml?.let(Html::toParagraphs)
+                ?: a.cleanedText!!.split("\n\n").filter { it.isNotBlank() }
         } else {
             Html.toParagraphs(a.contentHtml ?: a.summary.orEmpty())
         }

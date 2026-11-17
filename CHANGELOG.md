@@ -4,6 +4,12 @@ Versions are `major.minor.patch`, set in `app/build.gradle.kts` (`appVersionName
 The build number (Android `versionCode`) is the number of git commits, and every
 build records its commit id; both show at the bottom of the side menu.
 
+## 0.4.0 - 2026-11-17
+
+- Read aloud no longer reads text that isn't on screen: some pages (e.g. CNN en
+  Español) hide HTML inside their video players, and hidden elements are now
+  skipped too. Articles cleaned before this are fixed without cleaning them again.
+
 ## 0.3.0 - 2026-11-16
 
 - Swiping an article out of a list no longer removes it instantly: the card springs

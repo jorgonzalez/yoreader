@@ -46,7 +46,7 @@ Coroutines/Flow, OkHttp, WorkManager, Readability4J + jsoup, androidx.media
 
 ## Current state
 
-Everything below works and is in version 0.6.0 unless marked otherwise.
+Everything below works and is in version 0.7.0 unless marked otherwise.
 
 - Gradle project (Kotlin DSL, version catalog), minSdk 26, targetSdk 35
 - Room data model: `Feed`, `FeedGroup`, `FeedGroupCrossRef` (many-to-many),

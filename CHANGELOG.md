@@ -4,7 +4,7 @@ Versions are `major.minor.patch`, set in `app/build.gradle.kts` (`appVersionName
 The build number (Android `versionCode`) is the number of git commits, and every
 build records its commit id; both show at the bottom of the side menu.
 
-## Unreleased
+## 0.7.0 - 2026-11-18
 
 - New app icon: a cube of colored matchsticks with an orange RSS badge. The
   launcher still gives it its own shape (circle, squircle, rounded square).

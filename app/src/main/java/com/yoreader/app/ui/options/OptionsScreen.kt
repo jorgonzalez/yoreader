@@ -1,6 +1,10 @@
 package com.yoreader.app.ui.options
 
 import android.content.ActivityNotFoundException
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.runtime.saveable.rememberSaveable
 import android.net.Uri
 import android.text.format.DateUtils
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -248,23 +252,38 @@ private fun ReadAloudLanguages(
             modifier = Modifier.padding(16.dp),
         )
         else -> {
-            val onCount = voices.count { it.id in enabled }
-            voices.forEach { lang ->
-                val on = lang.id in enabled
-                val locked = on && onCount == 1
+            val active = voices.filter { it.id in enabled }
+            val inactive = voices.filter { it.id !in enabled }
+            active.forEach { lang ->
+                LanguageSwitch(lang, on = true, locked = active.size == 1, onSet = onSet)
+            }
+            if (inactive.isNotEmpty()) {
+                var open by rememberSaveable { mutableStateOf(false) }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .toggleable(value = on, enabled = !locked, role = Role.Switch) { onSet(lang.id, it) }
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                        .clickable { open = !open }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
                     Text(
-                        lang.name,
+                        "More languages (${inactive.size})",
                         style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.weight(1f),
                     )
-                    Switch(checked = on, onCheckedChange = null, enabled = !locked)
+                    Icon(
+                        if (open) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (open) "Hide" else "Show",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                AnimatedVisibility(visible = open) {
+                    Column {
+                        inactive.forEach { lang ->
+                            LanguageSwitch(lang, on = false, locked = false, onSet = onSet)
+                        }
+                    }
                 }
             }
         }
@@ -346,6 +365,30 @@ private fun LaptopSyncSection(
 }
 
 private const val SYNC_FILE_NAME = "yoreader-sync.json"
+
+/** One read-aloud language with its switch; [locked]: the last one on can't go off. */
+@Composable
+private fun LanguageSwitch(
+    lang: TtsLanguage,
+    on: Boolean,
+    locked: Boolean,
+    onSet: (id: String, on: Boolean) -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(value = on, enabled = !locked, role = Role.Switch) { onSet(lang.id, it) }
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+    ) {
+        Text(
+            lang.name,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f),
+        )
+        Switch(checked = on, onCheckedChange = null, enabled = !locked)
+    }
+}
 
 /** Android's text-to-speech settings (engine, voice downloads), or general settings. */
 private fun openTtsSettings(context: Context) {

@@ -20,7 +20,9 @@ build records its commit id; both show at the bottom of the side menu.
     Italian, Polish, Portuguese (Brazil and Portugal), Romanian, Slovak, Spanish,
     Swedish and Turkish. Only languages with a voice installed on the phone are
     listed, alphabetically; turn on the ones you read (Spanish and English are on
-    to start). A button opens Android's settings to add voices.
+    to start). Only the ones turned on are shown; the rest are under "More
+    languages", which opens like a drop-down. A button opens Android's settings
+    to add voices.
 - Read aloud detects the article's language among the ones turned on. The
   language button in the "now playing" bar swaps between two languages, or opens
   a list when there are more; the choice is still remembered per source.

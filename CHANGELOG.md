@@ -6,6 +6,8 @@ build records its commit id; both show at the bottom of the side menu.
 
 ## Unreleased
 
+- New app icon: a cube of colored matchsticks with an orange RSS badge. The
+  launcher still gives it its own shape (circle, squircle, rounded square).
 - New Options screen in the side menu (below Manage sources):
   - Article text size, from 80% to 150%, with a live preview. Text grows
     together with the headline (which grows a bit less, so it doesn't take over

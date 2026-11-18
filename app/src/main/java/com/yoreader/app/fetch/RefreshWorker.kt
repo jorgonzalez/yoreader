@@ -22,11 +22,16 @@ import java.util.concurrent.TimeUnit
 class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
-        val refresher = (applicationContext as YoReaderApp).refresher
+        val app = applicationContext as YoReaderApp
         val feedId = inputData.getLong(KEY_FEED_ID, NO_FEED)
         // Per-feed failures are stored on the feed and shown in the UI, so the
         // work itself succeeds; retrying a dead feed every few minutes helps nobody.
-        if (feedId == NO_FEED) refresher.refreshAll() else refresher.refresh(feedId)
+        if (feedId == NO_FEED) {
+            app.refresher.refreshAll()
+            app.cleanUpOldArticles()
+        } else {
+            app.refresher.refresh(feedId)
+        }
         return Result.success()
     }
 

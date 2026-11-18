@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.RssFeed
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -46,7 +47,7 @@ import com.yoreader.app.data.GroupWithFeeds
 
 /**
  * The side panel opened from the menu icon: all articles, the groups (tap one to see
- * its sources, plus "All in …" for the whole group), managing sources, and an
+ * its sources, plus "All in …" for the whole group), managing sources, Options, and an
  * "Add source" button pinned to the bottom, with the app version in small text below.
  * [selectedGroupId] highlights the group being viewed (-1 for "All articles").
  */
@@ -64,6 +65,7 @@ fun AppDrawer(
     onOpenFeed: (Long) -> Unit,
     onNewGroup: () -> Unit,
     onManageSources: () -> Unit,
+    onOptions: () -> Unit,
     onAddSource: () -> Unit,
 ) {
     // Groups opened in the menu; the group being viewed starts open.
@@ -182,6 +184,12 @@ fun AppDrawer(
                     icon = { Icon(Icons.Default.RssFeed, contentDescription = null) },
                     selected = false,
                     onClick = onManageSources,
+                )
+                NavigationDrawerItem(
+                    label = { Text("Options") },
+                    icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                    selected = false,
+                    onClick = onOptions,
                 )
             }
 

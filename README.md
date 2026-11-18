@@ -45,7 +45,7 @@ Everything below works and is in version 0.6.0 unless marked otherwise.
 
 - Gradle project (Kotlin DSL, version catalog), minSdk 26, targetSdk 35
 - Room data model: `Feed`, `FeedGroup`, `FeedGroupCrossRef` (many-to-many),
-  `Article`, plus DAOs and `AppDatabase` (schema v4, with migrations from v1)
+  `Article`, plus DAOs and `AppDatabase` (schema v5, with migrations from v1)
 - **Layout:** an always-visible bottom bar (menu, saved, latest, search; each closes
   the side menu) and a side menu opened from the menu icon: All articles; groups
   with unread counts, each expandable to "All in <group>" and its sources with
@@ -128,9 +128,18 @@ Everything below works and is in version 0.6.0 unless marked otherwise.
   - `RefreshWorker` / `RefreshScheduler`: WorkManager. Every feed is refreshed
     about hourly when online and the battery isn't low; a newly added source is
     fetched immediately; manual refresh from the top bar.
-- **Unit tests** (41): feed parsing, dates, HTML helpers and feed discovery, search
-  folding, OPML, clean up, speech text and speed, and the reader's HTML
-  (paragraph numbering, script stripping). Run with
+- **Options** (side menu, below Manage sources): article text size (80% to
+  150%, with a live preview; body text grows fully, the headline half as much,
+  and changing it doesn't reload the page), when read articles are removed
+  (30/60/90/180 days, 1 year or never; 90 by default; saved and unread articles
+  are always kept), and About (version, GitHub link, license). Removed articles
+  are remembered per feed (`removed_articles`), so a refresh doesn't bring them
+  back while the feed still lists them. Clean-up runs at start-up, when the
+  setting changes, and after each background refresh of all feeds.
+- **Unit tests** (50): feed parsing, dates, HTML helpers and feed discovery, search
+  folding, OPML, clean up, speech text and speed, the reader's HTML
+  (paragraph numbering, script stripping, text size), and the Options values
+  (text sizes, clean-up period). Run with
   `./gradlew :app:testDebugUnitTest`.
 
 ## Open the project
@@ -172,15 +181,17 @@ update an installed yoreader. To publish:
 
 1. **Sources and groups UI** - done, except reordering groups.
 2. **Feed fetching** - done.
-3. **Article list and reader** - done. Lists show the newest 1000 articles; there is
-   no clean-up of old articles yet.
+3. **Article list and reader** - done. Lists show the newest 1000 articles; read
+   articles are removed after 90 days (configurable in Options).
 4. **Clean up** - done (per article, from the reader).
 5. **TTS** - read-aloud with speed control, screen-off playback and
    notification/lock-screen controls done. Still to do: speed changes with no
    repeat at all and headset buttons (both by playing pre-rendered audio in the
    app). Following the text on screen is done, by paragraph; by sentence or word
    is possible later.
-6. **Polish** - OPML import/export and article search done; offline reading to do.
+6. **Polish** - OPML import/export, article search and Options (text size,
+   clean-up of old read articles) done; more read-aloud languages and offline
+   reading to do.
 7. **Sharing** (idea, not decided) - share articles with contacts inside the app,
    with a comment, over Nostr, with no server of our own.
 
@@ -194,10 +205,12 @@ app/src/main/java/com/yoreader/app/
   fetch/                Feed download, parsing, background refresh
   ui/                   Compose screens
   clean/                Clean up (main-content extraction)
+  settings/             Options stored on the phone (SharedPreferences)
   tts/                  Read aloud
   ui/shell/             Bottom bar, side drawer, now-playing bar
   ui/articles/          Article lists and swipeable rows
   ui/search/            Search
   ui/reader/            Article reader
+  ui/options/           Options screen
   ui/theme/             Dark color scheme
 ```

@@ -93,7 +93,15 @@ class FeedRefresher(
                 searchText = SearchText.forArticle(item.title, item.summary, item.contentHtml),
             )
         }
-        val inserted = if (articles.isEmpty()) 0 else articleDao.insertAll(articles).count { it != -1L }
+        // Read articles the clean-up removed stay away while the feed still lists them;
+        // once it doesn't, they're forgotten (in batches: SQLite limits query arguments).
+        val removed = articleDao.removedGuids(current.id).toSet()
+        if (removed.isNotEmpty()) {
+            val listed = articles.mapTo(HashSet()) { it.guid }
+            (removed - listed).chunked(500).forEach { articleDao.forgetRemoved(current.id, it) }
+        }
+        val fresh = articles.filter { it.guid !in removed }
+        val inserted = if (fresh.isEmpty()) 0 else articleDao.insertAll(fresh).count { it != -1L }
 
         feedDao.update(
             current.copy(

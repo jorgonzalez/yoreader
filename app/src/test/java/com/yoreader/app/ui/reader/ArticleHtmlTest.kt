@@ -19,4 +19,16 @@ class ArticleHtmlTest {
         val body = "<h2>Una sección</h2><p>Texto</p>"
         assertEquals(body, ArticleHtml.withoutRepeatedTitle(body, "Otro título"))
     }
+
+    @Test
+    fun zoomValueIsAFactor() {
+        assertEquals("1", ArticleHtml.zoomValue(100))
+        assertEquals("1.3", ArticleHtml.zoomValue(130))
+        assertEquals("0.8", ArticleHtml.zoomValue(80))
+    }
+
+    @Test
+    fun builtPagesCarryTheZoomToken() {
+        assert(ArticleHtml.sample().contains("--yr-zoom: ${ArticleHtml.ZOOM_TOKEN}"))
+    }
 }

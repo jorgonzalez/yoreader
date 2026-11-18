@@ -8,8 +8,10 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [Feed::class, FeedGroup::class, FeedGroupCrossRef::class, Article::class],
-    version = 4,
+    entities = [
+        Feed::class, FeedGroup::class, FeedGroupCrossRef::class, Article::class, RemovedArticle::class,
+    ],
+    version = 5,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -20,7 +22,7 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, "yoreader.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
 
         /** v2: HTTP caching headers and last refresh error on feeds. */
@@ -36,6 +38,16 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE articles ADD COLUMN cleanedHtml TEXT")
+            }
+        }
+
+        /** v5: read articles removed by the automatic clean-up, so refreshes skip them. */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS removed_articles " +
+                        "(feedId INTEGER NOT NULL, guid TEXT NOT NULL, PRIMARY KEY(feedId, guid))"
+                )
             }
         }
 

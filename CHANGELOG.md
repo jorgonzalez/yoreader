@@ -4,6 +4,17 @@ Versions are `major.minor.patch`, set in `app/build.gradle.kts` (`appVersionName
 The build number (Android `versionCode`) is the number of git commits, and every
 build records its commit id; both show at the bottom of the side menu.
 
+## Unreleased
+
+- New Options screen in the side menu (below Manage sources):
+  - Article text size, from 80% to 150%, with a live preview. Text grows
+    together with the headline (which grows a bit less, so it doesn't take over
+    the screen), in the reader and in cleaned pages.
+  - Remove read articles after 30, 60, 90 (default), 180 days, 1 year, or never.
+    Saved and unread articles are always kept, and removed ones don't come back
+    on the next refresh.
+  - About: version and build, link to the source code on GitHub, license.
+
 ## 0.6.0 - 2026-11-17
 
 - Read aloud follows the text: the paragraph being read is highlighted and the

@@ -26,7 +26,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yoreader.app.YoReaderApp
 import com.yoreader.app.ui.theme.Background
 import java.util.Locale
 import kotlin.math.abs
@@ -42,6 +45,9 @@ internal data class ReadingSpot(val paragraph: Int, val progress: Float)
  * highlighted and, with [follow], kept in view. Dragging the page calls [onUserScroll]
  * (so the screen can stop following). JavaScript is on only for that: [ArticleHtml]
  * strips the article's own scripts.
+ *
+ * Text is shown at the size chosen in Options; changing it doesn't reload the page or
+ * lose the place (see [ArticleHtml.ZOOM_TOKEN]).
  */
 @SuppressLint("SetJavaScriptEnabled", "ClickableViewAccessibility")
 @Composable
@@ -57,6 +63,9 @@ internal fun ArticleWebView(
     val userScroll by rememberUpdatedState(onUserScroll)
     // Survives recompositions: whether the page has loaded, and the last call made.
     val js = remember { ReadingScript() }
+    val context = LocalContext.current
+    val appSettings = remember(context) { (context.applicationContext as YoReaderApp).settings }
+    val textZoom by appSettings.textZoom.collectAsStateWithLifecycle()
     AndroidView(
         factory = { ctx ->
             WebView(ctx).apply {
@@ -71,6 +80,8 @@ internal fun ArticleWebView(
                     }
 
                     override fun onPageFinished(view: WebView, url: String?) {
+                        // The size may have changed while the page was loading.
+                        view.evaluateJavascript(ArticleHtml.zoomScript(js.zoom), null)
                         js.loaded = true
                         js.applied = null
                         js.apply(view)
@@ -95,12 +106,17 @@ internal fun ArticleWebView(
             }
         },
         update = { view ->
+            if (js.zoom != textZoom) {
+                js.zoom = textZoom
+                if (js.loaded) view.evaluateJavascript(ArticleHtml.zoomScript(textZoom), null)
+            }
             // Reload only when the content really changed (e.g. not when saving),
             // so the scroll position is kept.
             if (view.tag != html) {
                 view.tag = html
                 js.loaded = false
-                view.loadDataWithBaseURL(baseUrl, html, "text/html", "utf-8", null)
+                val page = html.replace(ArticleHtml.ZOOM_TOKEN, ArticleHtml.zoomValue(textZoom))
+                view.loadDataWithBaseURL(baseUrl, page, "text/html", "utf-8", null)
             }
             js.wanted = reading?.let {
                 "${ArticleHtml.READ_FUNCTION}(${it.paragraph}, ${"%.3f".format(Locale.ROOT, it.progress)}, $follow)"
@@ -115,6 +131,9 @@ internal fun ArticleWebView(
 /** The latest reading-position call for the page, sent once the page has loaded. */
 private class ReadingScript {
     var loaded = false
+
+    /** Text size (percent) the page shows. */
+    var zoom = 100
     var wanted: String? = null
     var applied: String? = null
 

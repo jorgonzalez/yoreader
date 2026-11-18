@@ -164,6 +164,28 @@ interface ArticleDao {
     @Query("UPDATE articles SET isRead = 1 WHERE isRead = 0")
     suspend fun markAllRead()
 
+    // --- Automatic clean-up of old read articles (see ArticleRetention) ---------------
+
+    /** Remembers the read, unsaved articles published before [before] as removed. */
+    @Query(
+        "INSERT OR IGNORE INTO removed_articles (feedId, guid) SELECT feedId, guid FROM articles " +
+            "WHERE isRead = 1 AND isStarred = 0 AND publishedAt < :before"
+    )
+    suspend fun rememberOldRead(before: Long)
+
+    /** Deletes the read, unsaved articles published before [before]; returns how many. */
+    @Query("DELETE FROM articles WHERE isRead = 1 AND isStarred = 0 AND publishedAt < :before")
+    suspend fun deleteOldRead(before: Long): Int
+
+    @Query("DELETE FROM removed_articles WHERE feedId NOT IN (SELECT id FROM feeds)")
+    suspend fun forgetRemovedOfDeletedFeeds()
+
+    @Query("SELECT guid FROM removed_articles WHERE feedId = :feedId")
+    suspend fun removedGuids(feedId: Long): List<String>
+
+    @Query("DELETE FROM removed_articles WHERE feedId = :feedId AND guid IN (:guids)")
+    suspend fun forgetRemoved(feedId: Long, guids: List<String>)
+
     @Query(
         "UPDATE articles SET isRead = 1 WHERE isRead = 0 AND feedId IN " +
             "(SELECT feedId FROM feed_group_cross_ref WHERE groupId = :groupId)"

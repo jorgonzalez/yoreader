@@ -8,6 +8,14 @@ build records its commit id; both show at the bottom of the side menu.
 
 - New app icon: a cube of colored matchsticks with an orange RSS badge. The
   launcher still gives it its own shape (circle, squircle, rounded square).
+- New Options screen in the side menu (below Manage sources):
+  - Article text size, from 80% to 150%, with a live preview. Text grows
+    together with the headline (which grows a bit less, so it doesn't take over
+    the screen), in the reader and in cleaned pages.
+  - Remove read articles after 30, 60, 90 (default), 180 days, 1 year, or never.
+    Saved and unread articles are always kept, and removed ones don't come back
+    on the next refresh.
+  - About: version and build, link to the source code on GitHub, license.
 
 ## 0.6.0 - 2026-11-17
 

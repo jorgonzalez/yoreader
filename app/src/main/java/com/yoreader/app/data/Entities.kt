@@ -103,6 +103,17 @@ data class Article(
     val searchText: String? = null,
 )
 
+/**
+ * A read article removed by the automatic clean-up (see [ArticleRetention]). Kept so a
+ * refresh doesn't add it back as new while its feed still lists it; forgotten once the
+ * feed no longer does. Rows of deleted feeds are dropped by the next clean-up.
+ */
+@Entity(tableName = "removed_articles", primaryKeys = ["feedId", "guid"])
+data class RemovedArticle(
+    val feedId: Long,
+    val guid: String,
+)
+
 /** Article totals for one feed, for the sources list. */
 data class FeedCounts(
     val feedId: Long,

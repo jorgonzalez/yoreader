@@ -47,6 +47,7 @@ import com.yoreader.app.ui.articles.ArticlesViewModel
 import com.yoreader.app.ui.components.AddSourceDialog
 import com.yoreader.app.ui.components.TextInputDialog
 import com.yoreader.app.ui.groups.GroupDetailScreen
+import com.yoreader.app.ui.options.OptionsScreen
 import com.yoreader.app.ui.reader.ReaderScreen
 import com.yoreader.app.ui.reader.ReaderViewModel
 import com.yoreader.app.ui.reader.WebPageScreen
@@ -65,6 +66,7 @@ private const val ROUTE_LATEST = "latest"
 private const val ROUTE_SAVED = "saved"
 private const val ROUTE_SEARCH = "search"
 private const val ROUTE_SOURCES = "sources"
+private const val ROUTE_OPTIONS = "options"
 private const val ROUTE_GROUP_EDIT = "group/{groupId}/edit"
 private const val ROUTE_ARTICLES = "articles/{${ArticlesViewModel.ARG_KIND}}/{${ArticlesViewModel.ARG_ID}}"
 private const val ROUTE_READER = "article/{${ReaderViewModel.ARG_ARTICLE_ID}}"
@@ -217,6 +219,7 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                     },
                     onNewGroup = { closeDrawerThen { showNewGroup = true } },
                     onManageSources = { closeDrawerThen { navController.openFromMenu(ROUTE_SOURCES) } },
+                    onOptions = { closeDrawerThen { navController.openFromMenu(ROUTE_OPTIONS) } },
                     onAddSource = { closeDrawerThen { showAddSource = true } },
                 )
             },
@@ -397,6 +400,19 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                         },
                         onSetMembership = { feedId, member -> vm.setMembership(feedId, groupId, member) },
                         onAddFeed = { url -> vm.addFeed(url, setOf(groupId)) },
+                    )
+                }
+
+                composable(ROUTE_OPTIONS) {
+                    val settings = remember(context) { (context.applicationContext as YoReaderApp).settings }
+                    val textZoom by settings.textZoom.collectAsStateWithLifecycle()
+                    val keepReadDays by settings.keepReadDays.collectAsStateWithLifecycle()
+                    OptionsScreen(
+                        textZoom = textZoom,
+                        onSetTextZoom = settings::setTextZoom,
+                        keepReadDays = keepReadDays,
+                        onSetKeepReadDays = settings::setKeepReadDays,
+                        onBack = { navController.popBackStack() },
                     )
                 }
 

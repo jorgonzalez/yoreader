@@ -53,6 +53,16 @@ internal object ArticleHtml {
     fun webPage(title: String, host: String, bodyHtml: String, language: String?): String =
         page(title, listOf(host, "Cleaned up"), readable(bodyHtml, title).html, language)
 
+    /** A short made-up article, to preview the text size in Options. */
+    fun sample(): String = page(
+        title = "A quiet morning on the river",
+        meta = listOf("yoreader", "Preview"),
+        body = "<p>The first boats left before sunrise, carrying fresh bread and the morning " +
+            "papers to the villages downstream.</p>" +
+            "<p>By nine the fog had lifted, and the market by the old bridge was already busy.</p>",
+        language = "en",
+    )
+
     private val HEADING = Regex("(?is)<h([1-3])\\b[^>]*>(.*?)</h\\1\\s*>")
 
     /**
@@ -74,7 +84,7 @@ internal object ArticleHtml {
 
         return """
             <!DOCTYPE html>
-            <html$lang>
+            <html$lang style="--yr-zoom: $ZOOM_TOKEN">
             <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -101,19 +111,20 @@ internal object ArticleHtml {
         body {
           margin: 0; padding: 8px 18px 48px;
           background: #0E0F12; color: #E6E7EA;
-          font-family: sans-serif; font-size: 18px; line-height: 1.6;
+          font-family: sans-serif; font-size: calc(18px * var(--yr-zoom, 1)); line-height: 1.6;
           overflow-wrap: break-word;
         }
         article * { color: inherit !important; background-color: transparent !important; }
         a, article a { color: #7CB7FF !important; }
-        .meta { color: #9AA0AB; font-size: 14px; margin: 8px 0 4px; }
-        h1 { font-size: 26px; line-height: 1.25; margin: 0 0 20px; }
+        .meta { color: #9AA0AB; font-size: calc(14px * var(--yr-zoom, 1)); margin: 8px 0 4px; }
+        /* The headline grows half as much as the text, so large sizes don't fill the screen with it. */
+        h1 { font-size: calc(26px * (0.5 + var(--yr-zoom, 1) / 2)); line-height: 1.25; margin: 0 0 20px; }
         h2, h3, h4 { line-height: 1.3; }
         img, video, iframe, svg { max-width: 100%; height: auto; border-radius: 6px; }
         figure { margin: 16px 0; }
-        figcaption { color: #9AA0AB !important; font-size: 14px; }
+        figcaption { color: #9AA0AB !important; font-size: calc(14px * var(--yr-zoom, 1)); }
         blockquote { margin: 16px 0; padding-left: 14px; border-left: 3px solid #3A3F4A; color: #9AA0AB !important; }
-        pre, code { font-family: monospace; font-size: 15px; }
+        pre, code { font-family: monospace; font-size: calc(15px * var(--yr-zoom, 1)); }
         pre { overflow-x: auto; padding: 12px; background-color: #1F222A !important; border-radius: 6px; }
         table { display: block; overflow-x: auto; border-collapse: collapse; }
         td, th { border: 1px solid #3A3F4A; padding: 4px 8px; }
@@ -135,6 +146,19 @@ internal object ArticleHtml {
      * view: a short paragraph as a whole, a long one at the line being read.
      */
     const val READ_FUNCTION = "yrRead"
+
+    /**
+     * Stands for the text size in a built page; [ArticleWebView] fills it in when loading
+     * (so a size change doesn't count as new content) and later changes it with
+     * [zoomScript], without reloading.
+     */
+    const val ZOOM_TOKEN = "__YR_ZOOM__"
+
+    /** CSS value for a text size in percent (100 -> "1"). */
+    fun zoomValue(percent: Int): String = (percent / 100.0).toString().removeSuffix(".0")
+
+    fun zoomScript(percent: Int): String =
+        "document.documentElement.style.setProperty('--yr-zoom', '${zoomValue(percent)}')"
 
     private val SCRIPT = """
         var yrEl = null;

@@ -24,6 +24,11 @@ build records its commit id; both show at the bottom of the side menu.
 - Read aloud detects the article's language among the ones turned on. The
   language button in the "now playing" bar swaps between two languages, or opens
   a list when there are more; the choice is still remembered per source.
+- Laptop page: read your articles in a browser on your computer (Chrome, Edge or
+  Brave) at jorgonzalez.github.io/yoreader, with read and saved articles kept the
+  same as on the phone. Set it up in Options → Laptop: the phone keeps a sync file
+  in Google Drive, and the page uses that same file through Google Drive for
+  desktop. No server or account involved; the newest change wins on both sides.
 
 ## 0.6.0 - 2026-11-17
 

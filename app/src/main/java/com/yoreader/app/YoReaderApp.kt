@@ -10,6 +10,7 @@ import com.yoreader.app.fetch.FeedParser
 import com.yoreader.app.fetch.FeedRefresher
 import com.yoreader.app.fetch.RefreshScheduler
 import com.yoreader.app.settings.AppSettings
+import com.yoreader.app.sync.LaptopSync
 import com.yoreader.app.tts.ArticleSpeaker
 import com.yoreader.app.tts.ReadAloudService
 import kotlinx.coroutines.CoroutineScope
@@ -40,6 +41,14 @@ class YoReaderApp : Application() {
 
     /** Removes old read articles as chosen in Options (also run after background refreshes). */
     suspend fun cleanUpOldArticles(): Int = retention.cleanUp(settings.keepReadDays.value)
+
+    /** The sync file shared with the laptop page (set up in Options). */
+    val laptopSync: LaptopSync by lazy { LaptopSync(this, database) }
+
+    /** Syncs with the laptop in the background, if a sync file is set. */
+    fun syncLaptopSoon() {
+        appScope.launch { laptopSync.sync() }
+    }
 
     /** One reader for the whole app, so listening survives moving between screens. */
     val speaker: ArticleSpeaker by lazy { ArticleSpeaker(this) { settings.ttsLanguages.value } }

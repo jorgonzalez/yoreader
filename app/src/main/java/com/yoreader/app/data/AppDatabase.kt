@@ -11,7 +11,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
     entities = [
         Feed::class, FeedGroup::class, FeedGroupCrossRef::class, Article::class, RemovedArticle::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -22,7 +22,7 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, "yoreader.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
 
         /** v2: HTTP caching headers and last refresh error on feeds. */
@@ -48,6 +48,14 @@ abstract class AppDatabase : RoomDatabase() {
                     "CREATE TABLE IF NOT EXISTS removed_articles " +
                         "(feedId INTEGER NOT NULL, guid TEXT NOT NULL, PRIMARY KEY(feedId, guid))"
                 )
+            }
+        }
+
+        /** v6: when read/saved last changed, so the laptop sync keeps the newest change. */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE articles ADD COLUMN readChangedAt INTEGER")
+                db.execSQL("ALTER TABLE articles ADD COLUMN starredChangedAt INTEGER")
             }
         }
 

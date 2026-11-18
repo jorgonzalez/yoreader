@@ -29,6 +29,7 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         if (feedId == NO_FEED) {
             app.refresher.refreshAll()
             app.cleanUpOldArticles()
+            app.laptopSync.sync()
         } else {
             app.refresher.refresh(feedId)
         }

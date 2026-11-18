@@ -1,0 +1,31 @@
+{
+  "writtenBy": "phone",
+  "writtenAt": 1763460000000,
+  "format": "yoreader-sync",
+  "version": 1,
+  "groups": ["News", "Tech"],
+  "feeds": [
+    { "url": "https://example.org/feed.xml", "title": "Example News", "siteUrl": "https://example.org", "groups": ["News"] },
+    { "url": "https://tech.example.com/rss", "title": "Tech Example", "groups": ["Tech", "News"] }
+  ],
+  "articles": [
+    {
+      "feed": "https://example.org/feed.xml", "guid": "a1", "title": "Unread article",
+      "link": "https://example.org/a1", "published": 1763450000000,
+      "excerpt": "The first boats left before sunrise.",
+      "html": "<p>The first boats left before sunrise.</p>",
+      "read": false, "readAt": null, "saved": false, "savedAt": null
+    },
+    {
+      "feed": "https://example.org/feed.xml", "guid": "a2", "title": "Read on the phone",
+      "link": "https://example.org/a2", "published": 1763440000000,
+      "read": true, "readAt": 1763455000000, "saved": false
+    },
+    {
+      "feed": "https://tech.example.com/rss", "guid": "t1", "title": "Saved article",
+      "link": "https://tech.example.com/t1", "published": 1763430000000,
+      "excerpt": "Saved for later.", "html": "<p>Saved for later.</p>",
+      "read": true, "readAt": 1763435000000, "saved": true, "savedAt": 1763436000000
+    }
+  ]
+}

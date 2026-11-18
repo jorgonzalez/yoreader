@@ -16,6 +16,7 @@ kxml2 = "2.3.0"
 readability4j = "1.0.8"
 jsoup = "1.17.2"
 media = "1.7.0"
+orgJson = "20240303"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -39,6 +40,7 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 kxml2 = { group = "net.sf.kxml", name = "kxml2", version.ref = "kxml2" }
 readability4j = { group = "net.dankito.readability4j", name = "readability4j", version.ref = "readability4j" }
 androidx-media = { group = "androidx.media", name = "media", version.ref = "media" }
+org-json = { group = "org.json", name = "json", version.ref = "orgJson" }
 jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 
 [plugins]

@@ -1,6 +1,14 @@
 package com.yoreader.app.ui.options
 
 import android.content.ActivityNotFoundException
+import android.net.Uri
+import android.text.format.DateUtils
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.Laptop
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material3.OutlinedButton
+import com.yoreader.app.sync.LaptopSync
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
@@ -62,6 +70,9 @@ import kotlin.math.roundToInt
 
 const val REPO_URL = "https://github.com/jorgonzalez/yoreader"
 
+/** The laptop page (web/ in the repo, published with GitHub Pages). */
+const val WEB_URL = "https://jorgonzalez.github.io/yoreader/"
+
 /**
  * Options, opened from the side menu: article text size (with a live preview drawn
  * exactly like the reader), read-aloud languages, how long read articles are kept, and
@@ -78,6 +89,10 @@ fun OptionsScreen(
     voices: List<TtsLanguage>?,
     enabledLanguages: Set<String>,
     onSetLanguage: (id: String, on: Boolean) -> Unit,
+    sync: LaptopSync.State,
+    onUseSyncFile: (Uri) -> Unit,
+    onSyncNow: () -> Unit,
+    onStopSync: () -> Unit,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -157,6 +172,10 @@ fun OptionsScreen(
             HorizontalDivider(Modifier.padding(top = 16.dp))
             SectionTitle("Read-aloud languages")
             ReadAloudLanguages(voices, enabledLanguages, onSetLanguage)
+
+            HorizontalDivider(Modifier.padding(top = 8.dp))
+            SectionTitle("Laptop")
+            LaptopSyncSection(sync, onUseSyncFile, onSyncNow, onStopSync)
 
             HorizontalDivider(Modifier.padding(top = 8.dp))
             SectionTitle("Storage")
@@ -258,6 +277,75 @@ private fun ReadAloudLanguages(
         Text("Add voices in Android settings", modifier = Modifier.padding(start = 8.dp))
     }
 }
+
+/**
+ * Sync with the laptop page through a file in Google Drive (or any storage app in the
+ * file picker): create or choose it here, then choose the same file on the laptop.
+ */
+@Composable
+private fun LaptopSyncSection(
+    sync: LaptopSync.State,
+    onUseFile: (Uri) -> Unit,
+    onSyncNow: () -> Unit,
+    onStop: () -> Unit,
+) {
+    val context = LocalContext.current
+    val create = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) {
+        it?.let(onUseFile)
+    }
+    val choose = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {
+        it?.let(onUseFile)
+    }
+    if (sync.fileUri == null) {
+        Text(
+            "Read on your laptop too: keep a sync file in Google Drive, then open the " +
+                "yoreader page on the laptop and choose the same file there. Read and " +
+                "saved articles stay the same on both.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+        )
+        Row(Modifier.padding(horizontal = 16.dp)) {
+            OutlinedButton(onClick = { create.launch(SYNC_FILE_NAME) }) { Text("Create sync file") }
+            TextButton(
+                onClick = { choose.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) },
+                modifier = Modifier.padding(start = 8.dp),
+            ) { Text("Use existing file") }
+        }
+    } else {
+        val detail = when {
+            sync.running -> "Syncing…"
+            sync.error != null -> sync.error
+            sync.lastSyncAt != null && System.currentTimeMillis() - sync.lastSyncAt < DateUtils.MINUTE_IN_MILLIS ->
+                "Synced just now"
+            sync.lastSyncAt != null -> "Synced " + DateUtils.getRelativeTimeSpanString(
+                sync.lastSyncAt, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS,
+            )
+            else -> "Not synced yet"
+        }
+        OptionRow(
+            icon = { Icon(Icons.Default.Sync, contentDescription = null) },
+            title = sync.fileName ?: "Sync file",
+            detail = detail,
+            onClick = onSyncNow,
+        )
+        Row(Modifier.padding(horizontal = 8.dp)) {
+            TextButton(onClick = onSyncNow, enabled = !sync.running) { Text("Sync now") }
+            TextButton(onClick = onStop) { Text("Stop syncing") }
+        }
+    }
+    OptionRow(
+        icon = { Icon(Icons.Default.Laptop, contentDescription = null) },
+        title = "Laptop page",
+        detail = WEB_URL.removePrefix("https://").removeSuffix("/") + " · Chrome, Edge or Brave",
+        trailing = {
+            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, Modifier.size(20.dp))
+        },
+        onClick = { openExternal(context, WEB_URL) },
+    )
+}
+
+private const val SYNC_FILE_NAME = "yoreader-sync.json"
 
 /** Android's text-to-speech settings (engine, voice downloads), or general settings. */
 private fun openTtsSettings(context: Context) {

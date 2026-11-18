@@ -63,6 +63,9 @@ private const val LIST_COLUMNS = """
     a.publishedAt, a.isRead, a.isStarred
 """
 
+/** The current time in ms, in SQL (for when read/saved last changed). */
+private const val NOW_MS = "CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER)"
+
 /** Lists are capped; older articles stay in the database but aren't shown (yet). */
 private const val LIST_LIMIT = "LIMIT 1000"
 
@@ -155,13 +158,16 @@ interface ArticleDao {
     @Query("SELECT COUNT(*) FROM articles WHERE isRead = 0")
     fun observeUnreadTotal(): Flow<Int>
 
-    @Query("UPDATE articles SET isRead = :read WHERE id = :id")
+    @Query("UPDATE articles SET isRead = :read, readChangedAt = $NOW_MS WHERE id = :id AND isRead != :read")
     suspend fun setRead(id: Long, read: Boolean)
 
-    @Query("UPDATE articles SET isStarred = :starred WHERE id = :id")
+    @Query(
+        "UPDATE articles SET isStarred = :starred, starredChangedAt = $NOW_MS " +
+            "WHERE id = :id AND isStarred != :starred"
+    )
     suspend fun setStarred(id: Long, starred: Boolean)
 
-    @Query("UPDATE articles SET isRead = 1 WHERE isRead = 0")
+    @Query("UPDATE articles SET isRead = 1, readChangedAt = $NOW_MS WHERE isRead = 0")
     suspend fun markAllRead()
 
     // --- Automatic clean-up of old read articles (see ArticleRetention) ---------------
@@ -187,13 +193,67 @@ interface ArticleDao {
     suspend fun forgetRemoved(feedId: Long, guids: List<String>)
 
     @Query(
-        "UPDATE articles SET isRead = 1 WHERE isRead = 0 AND feedId IN " +
+        "UPDATE articles SET isRead = 1, readChangedAt = $NOW_MS WHERE isRead = 0 AND feedId IN " +
             "(SELECT feedId FROM feed_group_cross_ref WHERE groupId = :groupId)"
     )
     suspend fun markGroupRead(groupId: Long)
 
-    @Query("UPDATE articles SET isRead = 1 WHERE isRead = 0 AND feedId = :feedId")
+    @Query("UPDATE articles SET isRead = 1, readChangedAt = $NOW_MS WHERE isRead = 0 AND feedId = :feedId")
     suspend fun markFeedRead(feedId: Long)
+
+    // --- Laptop sync (see sync/LaptopSync) ------------------------------------------------
+
+    /**
+     * What the laptop gets: unread and saved articles with their text, and read ones
+     * changed since [readSince] without it (so the laptop learns they were read).
+     */
+    @Query(
+        """
+        SELECT f.url AS feedUrl, a.guid, a.title, a.link, a.publishedAt,
+          CASE WHEN a.isRead = 0 OR a.isStarred = 1
+            THEN substr(COALESCE(a.cleanedHtml, a.contentHtml, a.summary), 1, 300000) END AS html,
+          substr(COALESCE(a.summary, a.contentHtml), 1, 1500) AS excerptHtml,
+          a.isRead, a.readChangedAt, a.isStarred, a.starredChangedAt
+        FROM articles a INNER JOIN feeds f ON f.id = a.feedId
+        WHERE a.isRead = 0 OR a.isStarred = 1 OR a.readChangedAt >= :readSince
+        ORDER BY a.publishedAt DESC, a.id DESC
+        """
+    )
+    suspend fun forSync(readSince: Long): List<SyncArticleRow>
+
+    /**
+     * Changes whenever anything the sync file holds changes (articles, their states and
+     * cleaned text, feeds, groups), so a sync can tell cheaply that nothing did.
+     */
+    @Query(
+        """
+        SELECT
+          (SELECT COUNT(*) || ',' || COALESCE(SUM(isRead), 0) || ',' || COALESCE(SUM(isStarred), 0) || ','
+             || COALESCE(MAX(id), 0) || ',' || COALESCE(MAX(readChangedAt), 0) || ','
+             || COALESCE(MAX(starredChangedAt), 0) || ',' || COALESCE(SUM(LENGTH(cleanedHtml)), 0)
+           FROM articles)
+          || '|' || (SELECT COALESCE(group_concat(id || ':' || url || ':' || title, ';'), '') FROM feeds)
+          || '|' || (SELECT COALESCE(group_concat(id || ':' || name || ':' || position, ';'), '') FROM feed_groups)
+          || '|' || (SELECT COUNT(*) || ',' || COALESCE(SUM(feedId * 1000003 + groupId), 0) FROM feed_group_cross_ref)
+        """
+    )
+    suspend fun syncFingerprint(): String
+
+    /** Takes a read state changed on the laptop, if newer than the phone's. */
+    @Query(
+        "UPDATE articles SET isRead = :read, readChangedAt = :at " +
+            "WHERE guid = :guid AND feedId = (SELECT id FROM feeds WHERE url = :feedUrl) " +
+            "AND COALESCE(readChangedAt, 0) < :at"
+    )
+    suspend fun syncRead(feedUrl: String, guid: String, read: Boolean, at: Long): Int
+
+    /** Takes a saved state changed on the laptop, if newer than the phone's. */
+    @Query(
+        "UPDATE articles SET isStarred = :saved, starredChangedAt = :at " +
+            "WHERE guid = :guid AND feedId = (SELECT id FROM feeds WHERE url = :feedUrl) " +
+            "AND COALESCE(starredChangedAt, 0) < :at"
+    )
+    suspend fun syncSaved(feedUrl: String, guid: String, saved: Boolean, at: Long): Int
 
     /** Stores a cleaned version; [searchText] should cover it so search finds its text. */
     @Query(

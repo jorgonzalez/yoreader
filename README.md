@@ -141,7 +141,9 @@ Everything below works and is in version 0.6.0 unless marked otherwise.
     fetched immediately; manual refresh from the top bar.
 - **Options** (side menu, below Manage sources): article text size (80% to
   150%, with a live preview; body text grows fully, the headline half as much,
-  and changing it doesn't reload the page), when read articles are removed
+  and changing it doesn't reload the page), read-aloud languages (those turned on
+  are listed; the others with a voice on the phone are under "More languages", a
+  drop-down), the laptop sync file, when read articles are removed
   (30/60/90/180 days, 1 year or never; 90 by default; saved and unread articles
   are always kept), and About (version, GitHub link, license). Removed articles
   are remembered per feed (`removed_articles`), so a refresh doesn't bring them

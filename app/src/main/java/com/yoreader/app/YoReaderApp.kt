@@ -42,7 +42,7 @@ class YoReaderApp : Application() {
     suspend fun cleanUpOldArticles(): Int = retention.cleanUp(settings.keepReadDays.value)
 
     /** One reader for the whole app, so listening survives moving between screens. */
-    val speaker: ArticleSpeaker by lazy { ArticleSpeaker(this) }
+    val speaker: ArticleSpeaker by lazy { ArticleSpeaker(this) { settings.ttsLanguages.value } }
 
     /** For short jobs that must finish even if the screen that started them closes. */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

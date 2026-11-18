@@ -2,50 +2,14 @@ package com.yoreader.app.tts
 
 import java.util.Locale
 
-/** Text preparation for read-aloud: language guess and chunking. */
+/** Text preparation for read-aloud: chunking and where to resume. */
 object SpeechText {
 
-    private val WORD = Regex("[\\p{L}']+")
-
-    private val SPANISH = setOf(
-        "de", "la", "que", "el", "en", "y", "los", "las", "del", "se", "por", "con",
-        "para", "una", "un", "es", "al", "lo", "como", "más", "pero", "sus", "le", "ya",
-        "o", "este", "esta", "entre", "cuando", "muy", "sin", "sobre", "también", "fue", "ha",
-    )
-    private val ENGLISH = setOf(
-        "the", "of", "and", "to", "in", "is", "that", "for", "it", "with", "as", "on",
-        "was", "are", "this", "be", "by", "not", "you", "at", "from", "have", "has", "but",
-        "they", "his", "her", "which", "were", "their", "will", "would", "an", "or", "its",
-    )
-
-    /** Letters and marks that (almost) only Spanish uses among the two languages. */
-    private val SPANISH_CHARS = setOf('ñ', 'á', 'é', 'í', 'ó', 'ú', '¿', '¡')
-
     /**
-     * "es" or "en" for [text], or null when it can't tell. Counts the most common
-     * function words of each language; Spanish-only characters (ñ, accents, ¿ ¡) add
-     * strong evidence, so even a short summary is usually enough.
+     * "es" or "en" for [text], or null when it can't tell (see [LanguageGuess], which
+     * handles any set of read-aloud languages).
      */
-    fun guessLanguage(text: String): String? {
-        val sample = text.take(5_000)
-        var es = 0.0
-        var en = 0.0
-        for (match in WORD.findAll(sample)) {
-            val w = match.value.lowercase(Locale.ROOT)
-            if (w in SPANISH) es++
-            if (w in ENGLISH) en++
-        }
-        // Each Spanish character counts like half a function word, capped so a few
-        // accented names in an English text don't flip it.
-        val marks = sample.lowercase(Locale.ROOT).count { it in SPANISH_CHARS }
-        es += minOf(marks * 0.5, maxOf(6.0, en))
-        if (es + en < 4) return null
-        return when {
-            es > en * 1.3 -> "es"
-            en > es * 1.3 -> "en"
-            else -> null
-        }
-    }
+    fun guessLanguage(text: String): String? = LanguageGuess.guess(text, setOf("es", "en"))
 
     private val SENTENCE_END = Regex("(?<=[.!?…»”\"])\\s+")
 

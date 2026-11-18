@@ -8,7 +8,6 @@ import androidx.lifecycle.viewModelScope
 import com.yoreader.app.YoReaderApp
 import com.yoreader.app.clean.CleanResult
 import com.yoreader.app.tts.ArticleSpeaker
-import com.yoreader.app.tts.SpeechText
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -77,7 +76,7 @@ class WebPageViewModel(
                         title = title,
                         html = result.html,
                         text = result.text,
-                        language = SpeechText.guessLanguage(title + "\n" + result.text),
+                        language = speaker.guessLanguage(title + "\n" + result.text),
                     )
                     cleaned.value = page
                     showCleaned.value = true

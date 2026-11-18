@@ -14,6 +14,14 @@ build records its commit id; both show at the bottom of the side menu.
     Saved and unread articles are always kept, and removed ones don't come back
     on the next refresh.
   - About: version and build, link to the source code on GitHub, license.
+  - Read-aloud languages: Czech, Dutch, English, Finnish, French, German,
+    Italian, Polish, Portuguese (Brazil and Portugal), Romanian, Slovak, Spanish,
+    Swedish and Turkish. Only languages with a voice installed on the phone are
+    listed, alphabetically; turn on the ones you read (Spanish and English are on
+    to start). A button opens Android's settings to add voices.
+- Read aloud detects the article's language among the ones turned on. The
+  language button in the "now playing" bar swaps between two languages, or opens
+  a list when there are more; the choice is still remembered per source.
 
 ## 0.6.0 - 2026-11-17
 

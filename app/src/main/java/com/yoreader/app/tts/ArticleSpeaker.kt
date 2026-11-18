@@ -14,7 +14,11 @@ import java.util.Locale
  * Reads one article at a time with Android's TextToSpeech. App-wide (lives in the
  * Application), so reading continues while the user moves around the app.
  */
-class ArticleSpeaker(context: Context) {
+class ArticleSpeaker(
+    context: Context,
+    /** Ids of the read-aloud languages turned on in Options ([TtsLanguages]). */
+    private val enabledLanguages: () -> Set<String> = { TtsLanguages.DEFAULT_ENABLED },
+) {
 
     enum class Status { IDLE, PREPARING, SPEAKING, PAUSED }
 
@@ -29,7 +33,7 @@ class ArticleSpeaker(context: Context) {
         val error: String? = null,
         /** Set when reading a web page opened in the app rather than a stored article. */
         val pageUrl: String? = null,
-        /** "es" or "en": the voice being used. */
+        /** Id of the voice being used ([TtsLanguages]): "es", "en", "pt-BR"... */
         val language: String = "en",
         /**
          * The paragraph being read, as an index into title + paragraphs given to [play]
@@ -52,6 +56,14 @@ class ArticleSpeaker(context: Context) {
     private val _rate = MutableStateFlow(prefs.getFloat(KEY_RATE, SpeechRate.NORMAL))
     /** Speech speed, kept across articles and app restarts. */
     val rate: StateFlow<Float> = _rate
+
+    private val _voices = MutableStateFlow<Set<String>?>(null)
+
+    /**
+     * Ids of the [TtsLanguages] this phone has a voice for; null until the speech engine
+     * has been asked ([checkVoices], or the first time something is read).
+     */
+    val voices: StateFlow<Set<String>?> = _voices
 
     private var tts: TextToSpeech? = null
     private var engineReady = false
@@ -78,9 +90,10 @@ class ArticleSpeaker(context: Context) {
     @Volatile private var session = 0
 
     /**
-     * Starts reading [paragraphs] (title first) in [language] ("es"/"en"/null for the
-     * device default). Replaces whatever was being read. [pageUrl] marks a web page
-     * (not a stored article), so the UI can link back to it.
+     * Starts reading [paragraphs] (title first) in [language] (a detected or declared
+     * language such as "es" or "pt", a voice id like "pt-BR", or null for the device
+     * default), among the languages turned on. Replaces whatever was being read.
+     * [pageUrl] marks a web page (not a stored article), so the UI can link back to it.
      */
     fun play(
         articleId: Long,
@@ -109,11 +122,15 @@ class ArticleSpeaker(context: Context) {
         chunkStart = pieces.map { it.second }.toIntArray()
         paragraphLength = all.map { it.length.coerceAtLeast(1) }.toIntArray()
         this.sourceKey = sourceKey
-        // A language the user picked for this source wins over detection.
-        val lang = sourceKey?.let { prefs.getString(KEY_LANG_PREFIX + it, null) }
-            ?: language?.takeIf { it in SUPPORTED }
-            ?: Locale.getDefault().language.takeIf { it in SUPPORTED }
-            ?: "en"
+        // A language the user picked for this source wins over detection; then the
+        // detected one, the phone's own language, and else the first one turned on.
+        val choices = readingLanguages()
+        val sample = all.joinToString("\n").take(20_000)
+        val lang = sourceKey?.let { prefs.getString(KEY_LANG_PREFIX + it, null) }?.takeIf { it in choices }
+            ?: TtsLanguages.voiceFor(language, choices, sample)
+            ?: TtsLanguages.voiceFor(Locale.getDefault().language, choices, sample)
+            ?: choices.firstOrNull { it == "en" }
+            ?: choices.first()
         locale = localeFor(lang)
         _state.value = State(
             Status.PREPARING, articleId, title, 0, text.size, pageUrl = pageUrl, language = lang,
@@ -168,13 +185,12 @@ class ArticleSpeaker(context: Context) {
     }
 
     /**
-     * Switches between Spanish and English for what's being read, continuing from the
-     * current sentence, and remembers the choice for this source (feed or website).
+     * Reads on in language [lang] (a voice id), from the current sentence, and
+     * remembers the choice for this source (feed or website).
      */
-    fun switchLanguage() {
+    fun setLanguage(lang: String) {
         val s = _state.value
-        if (!s.isActive) return
-        val lang = if (s.language == "es") "en" else "es"
+        if (!s.isActive || lang == s.language || TtsLanguages.byId(lang) == null) return
         sourceKey?.let { prefs.edit().putString(KEY_LANG_PREFIX + it, lang).apply() }
         locale = localeFor(lang)
         _state.update { it.copy(language = lang) }
@@ -190,9 +206,56 @@ class ArticleSpeaker(context: Context) {
         }
     }
 
-    private fun localeFor(lang: String): Locale = when (lang) {
-        "es" -> Locale("es", "ES")
-        else -> Locale.US
+    private fun localeFor(lang: String): Locale = TtsLanguages.byId(lang)?.locale ?: Locale.US
+
+    /**
+     * The languages to choose from: those turned on that have a voice on this phone
+     * (all turned on while that isn't known yet), in [TtsLanguages.ALL] order.
+     */
+    fun readingLanguages(): List<String> {
+        val on = enabledLanguages()
+        val known = _voices.value
+        val usable = TtsLanguages.ALL.map { it.id }.filter { it in on && (known == null || it in known) }
+        return usable.ifEmpty { TtsLanguages.ALL.map { it.id }.filter { it in on }.ifEmpty { listOf("en") } }
+    }
+
+    /** The language of [text] among those to choose from (a base code like "pt"), or null. */
+    fun guessLanguage(text: String): String? {
+        val bases = readingLanguages().map { it.substringBefore('-') }.toSet()
+        return bases.singleOrNull() ?: LanguageGuess.guess(text, bases)
+    }
+
+    /** Asks the speech engine which voices this phone has (result in [voices]). */
+    fun checkVoices() {
+        if (engineReady) updateVoices() else startEngine()
+    }
+
+    private fun updateVoices() {
+        val engine = tts ?: return
+        // Installed voices only: engines also list voices they'd still have to download.
+        val installed = try {
+            engine.voices.orEmpty()
+                .filter { TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED !in it.features.orEmpty() }
+                .map { it.locale }
+        } catch (e: Exception) {
+            null
+        }
+        _voices.value = TtsLanguages.ALL.filter { lang ->
+            if (installed != null) {
+                installed.any { v ->
+                    v.language == lang.locale.language && (!lang.needsCountry || v.country == lang.locale.country)
+                }
+            } else {
+                // No voice list from this engine: ask per language instead.
+                val result = try {
+                    engine.isLanguageAvailable(lang.locale)
+                } catch (e: Exception) {
+                    TextToSpeech.LANG_NOT_SUPPORTED
+                }
+                result >= if (lang.needsCountry) TextToSpeech.LANG_COUNTRY_AVAILABLE else TextToSpeech.LANG_AVAILABLE
+            }
+        }.map { it.id }.toSet()
+        Log.d(TAG, "Voices on this phone: ${_voices.value}")
     }
 
     fun clearError() = _state.update { it.copy(error = null) }
@@ -205,6 +268,12 @@ class ArticleSpeaker(context: Context) {
         }
         pendingStart = action
         if (engine != null) return // still initializing
+        startEngine()
+    }
+
+    /** Creates the engine (once); runs [pendingStart] when it's ready. */
+    private fun startEngine() {
+        if (tts != null) return
         tts = TextToSpeech(appContext) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 engineReady = true
@@ -215,6 +284,7 @@ class ArticleSpeaker(context: Context) {
                         .build()
                 )
                 tts?.setOnUtteranceProgressListener(listener)
+                updateVoices()
                 pendingStart?.invoke()
                 pendingStart = null
             } else {
@@ -233,7 +303,8 @@ class ArticleSpeaker(context: Context) {
         val engine = tts ?: return
         val result = engine.setLanguage(locale)
         if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-            val name = locale.getDisplayLanguage(Locale.ENGLISH)
+            val name = TtsLanguages.byId(_state.value.language)?.name
+                ?: locale.getDisplayLanguage(Locale.ENGLISH)
             fail("No $name voice installed. Add one in Android Settings › Text-to-speech.")
             return
         }
@@ -279,7 +350,6 @@ class ArticleSpeaker(context: Context) {
         const val PREFS = "speech"
         const val KEY_RATE = "rate"
         const val KEY_LANG_PREFIX = "lang:"
-        val SUPPORTED = setOf("es", "en")
     }
 
     /** Utterance ids are "<session>:<chunk index>:<offset of the spoken text in the chunk>". */

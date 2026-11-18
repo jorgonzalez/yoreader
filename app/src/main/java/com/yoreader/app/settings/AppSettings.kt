@@ -2,6 +2,7 @@ package com.yoreader.app.settings
 
 import android.content.Context
 import com.yoreader.app.data.ArticleRetention
+import com.yoreader.app.tts.TtsLanguages
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,10 +40,31 @@ class AppSettings(context: Context) {
         prefs.edit().putInt(KEY_KEEP_READ_DAYS, days).apply()
     }
 
+    private val _ttsLanguages = MutableStateFlow(
+        prefs.getStringSet(KEY_TTS_LANGUAGES, null)
+            ?.filter { TtsLanguages.byId(it) != null }?.toSet()
+            ?.takeIf { it.isNotEmpty() }
+            ?: TtsLanguages.DEFAULT_ENABLED
+    )
+
+    /** Ids of the read-aloud languages turned on ([TtsLanguages]); never empty. */
+    val ttsLanguages: StateFlow<Set<String>> = _ttsLanguages.asStateFlow()
+
+    /** Turns a read-aloud language on or off; the last one left can't be turned off. */
+    fun setTtsLanguage(id: String, on: Boolean) {
+        if (TtsLanguages.byId(id) == null) return
+        val now = _ttsLanguages.value
+        val next = if (on) now + id else now - id
+        if (next.isEmpty() || next == now) return
+        _ttsLanguages.value = next
+        prefs.edit().putStringSet(KEY_TTS_LANGUAGES, next).apply()
+    }
+
     private companion object {
         const val PREFS = "settings"
         const val KEY_TEXT_ZOOM = "text_zoom"
         const val KEY_KEEP_READ_DAYS = "keep_read_days"
+        const val KEY_TTS_LANGUAGES = "tts_languages"
     }
 }
 

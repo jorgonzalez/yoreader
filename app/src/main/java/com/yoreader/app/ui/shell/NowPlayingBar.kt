@@ -31,10 +31,23 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.yoreader.app.tts.ArticleSpeaker
 import com.yoreader.app.tts.SpeechRate
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.yoreader.app.tts.TtsLanguage
+import com.yoreader.app.tts.TtsLanguages
 
 /**
  * Strip above the bottom bar while an article is being read aloud: title and progress
- * (tap to open the article), voice language (ES/EN), speed − / +, pause/resume and stop.
+ * (tap to open the article), voice language, speed − / +, pause/resume and stop.
+ *
+ * The language button switches between the [languages] to choose from: a tap swaps
+ * them when there are two; with more, it opens a list.
  */
 @Composable
 fun NowPlayingBar(
@@ -42,7 +55,8 @@ fun NowPlayingBar(
     rate: Float,
     onSlower: () -> Unit,
     onFaster: () -> Unit,
-    onSwitchLanguage: () -> Unit,
+    languages: List<TtsLanguage>,
+    onSetLanguage: (String) -> Unit,
     onOpen: () -> Unit,
     onPlayPause: () -> Unit,
     onStop: () -> Unit,
@@ -80,22 +94,7 @@ fun NowPlayingBar(
                         maxLines = 1,
                     )
                 }
-                // Voice language: tap to switch between Spanish and English.
-                TextButton(
-                    onClick = onSwitchLanguage,
-                    contentPadding = PaddingValues(horizontal = 6.dp),
-                    modifier = Modifier
-                        .widthIn(min = 40.dp)
-                        .semantics {
-                            contentDescription = if (state.language == "es") {
-                                "Reading in Spanish. Switch to English"
-                            } else {
-                                "Reading in English. Switch to Spanish"
-                            }
-                        },
-                ) {
-                    Text(state.language.uppercase(), style = MaterialTheme.typography.labelLarge)
-                }
+                LanguageButton(state.language, languages, onSetLanguage)
                 // Speed: − 1.25× +
                 IconButton(
                     onClick = onSlower,
@@ -129,6 +128,48 @@ fun NowPlayingBar(
                 IconButton(onClick = onStop) {
                     Icon(Icons.Default.Close, contentDescription = "Stop reading")
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LanguageButton(current: String, languages: List<TtsLanguage>, onSetLanguage: (String) -> Unit) {
+    val now = TtsLanguages.byId(current)
+    var menuOpen by remember { mutableStateOf(false) }
+    val others = languages.filter { it.id != current }
+    Box {
+        TextButton(
+            onClick = {
+                when {
+                    others.size == 1 && languages.size == 2 -> onSetLanguage(others.single().id)
+                    others.isNotEmpty() -> menuOpen = true
+                }
+            },
+            enabled = others.isNotEmpty(),
+            contentPadding = PaddingValues(horizontal = 6.dp),
+            modifier = Modifier
+                .widthIn(min = 40.dp)
+                .semantics {
+                    contentDescription = "Reading in ${now?.name ?: current}. Change language"
+                },
+        ) {
+            Text(now?.label ?: current.uppercase(), style = MaterialTheme.typography.labelLarge)
+        }
+        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            languages.forEach { lang ->
+                DropdownMenuItem(
+                    text = { Text(lang.name) },
+                    trailingIcon = if (lang.id == current) {
+                        { Icon(Icons.Default.Check, contentDescription = "Current") }
+                    } else {
+                        null
+                    },
+                    onClick = {
+                        menuOpen = false
+                        onSetLanguage(lang.id)
+                    },
+                )
             }
         }
     }

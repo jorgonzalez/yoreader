@@ -1,8 +1,8 @@
 # yoreader
 
 An Android RSS reader with a dark UI, user-managed source groups, text-to-speech
-reading (Spanish and English), and a one-tap "clean up" that turns a cluttered web
-page into readable article text.
+reading (15 languages, as the phone's voices allow), and a one-tap "clean up" that
+turns a cluttered web page into readable article text.
 
 ## Download
 
@@ -26,8 +26,10 @@ To check a download, compare it with the output of `shasum -a 256 yoreader-0.6.0
 - **Dark only.** One dark Material 3 scheme, no light theme.
 - **Groups.** Sources can be in any number of groups; groups can be created,
   renamed and deleted.
-- **Read aloud.** Android `TextToSpeech`, Spanish and English, language detected per
-  article, with an ES/EN switch and speed control; the paragraph being read is
+- **Read aloud.** Android `TextToSpeech` in Czech, Dutch, English, Finnish, French,
+  German, Italian, Polish, Portuguese (Brazil and Portugal), Romanian, Slovak,
+  Spanish, Swedish and Turkish (those with a voice on the phone, chosen in
+  Options), language detected per article, with a language switch and speed control; the paragraph being read is
   highlighted and kept in view; keeps reading with the screen off, with controls
   in the notification panel and on the lock screen.
 - **Clean up.** Main-content extraction for any article or page you open, in the
@@ -85,11 +87,17 @@ Everything below works and is in version 0.6.0 unless marked otherwise.
   the reader then says why it couldn't clean.
 - **Read aloud** (`tts/`): Android TextToSpeech, one app-wide `ArticleSpeaker`.
   Reads the version on screen (cleaned if shown), title first, in chunks the engine
-  accepts. Language per article from its text (Spanish/English function words,
-  plus ñ/accents/¿¡ as strong Spanish evidence), falling back to the feed's
-  declared language (often wrong: many Spanish blogs declare en-US). A "now
-  playing" bar above the bottom bar shows progress, an ES/EN switch (remembered per
-  source: feed, or website for in-app pages), speed − / + (0.5× to 3×,
+  accepts. **Languages**: Options lists the 15 supported languages that have a
+  voice installed on the phone (`tts/TtsLanguages`, checked against the engine's
+  installed voices), alphabetically, each with a switch; Spanish and English are on
+  by default. Language per article from its text, among the ones turned on
+  (`tts/LanguageGuess`: common function words of each language, plus letters only
+  one of the languages turned on uses, e.g. ñ when it's just Spanish and English;
+  Portuguese picks Brazil or Portugal from spellings like você/fato vs
+  facto/equipa), falling back to the feed's declared language (often wrong: many
+  Spanish blogs declare en-US). A "now playing" bar above the bottom bar shows
+  progress, a language button (a tap swaps two languages, a list with more;
+  remembered per source: feed, or website for in-app pages), speed − / + (0.5× to 3×,
   remembered), pause/resume and stop on every screen. Speed changes and
   pause/resume continue from the start of the sentence being read (or the current
   word in a very long sentence), using the engine's word-position callbacks.
@@ -136,8 +144,9 @@ Everything below works and is in version 0.6.0 unless marked otherwise.
   are remembered per feed (`removed_articles`), so a refresh doesn't bring them
   back while the feed still lists them. Clean-up runs at start-up, when the
   setting changes, and after each background refresh of all feeds.
-- **Unit tests** (50): feed parsing, dates, HTML helpers and feed discovery, search
-  folding, OPML, clean up, speech text and speed, the reader's HTML
+- **Unit tests** (58): feed parsing, dates, HTML helpers and feed discovery, search
+  folding, OPML, clean up, speech text and speed, language detection in all 14
+  languages, the reader's HTML
   (paragraph numbering, script stripping, text size), and the Options values
   (text sizes, clean-up period). Run with
   `./gradlew :app:testDebugUnitTest`.
@@ -190,8 +199,7 @@ update an installed yoreader. To publish:
    app). Following the text on screen is done, by paragraph; by sentence or word
    is possible later.
 6. **Polish** - OPML import/export, article search and Options (text size,
-   clean-up of old read articles) done; more read-aloud languages and offline
-   reading to do.
+   clean-up of old read articles, read-aloud languages) done; offline reading to do.
 7. **Sharing** (idea, not decided) - share articles with contacts inside the app,
    with a comment, over Nostr, with no server of our own.
 

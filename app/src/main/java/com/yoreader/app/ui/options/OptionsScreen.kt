@@ -1,5 +1,13 @@
 package com.yoreader.app.ui.options
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.provider.Settings
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material.icons.filled.RecordVoiceOver
+import androidx.compose.material3.Switch
+import com.yoreader.app.tts.TtsLanguage
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -56,7 +64,8 @@ const val REPO_URL = "https://github.com/jorgonzalez/yoreader"
 
 /**
  * Options, opened from the side menu: article text size (with a live preview drawn
- * exactly like the reader), how long read articles are kept, and about the app.
+ * exactly like the reader), read-aloud languages, how long read articles are kept, and
+ * about the app.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,6 +74,10 @@ fun OptionsScreen(
     onSetTextZoom: (Int) -> Unit,
     keepReadDays: Int,
     onSetKeepReadDays: (Int) -> Unit,
+    /** Read-aloud languages this phone has a voice for (null: still checking). */
+    voices: List<TtsLanguage>?,
+    enabledLanguages: Set<String>,
+    onSetLanguage: (id: String, on: Boolean) -> Unit,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -142,6 +155,10 @@ fun OptionsScreen(
             )
 
             HorizontalDivider(Modifier.padding(top = 16.dp))
+            SectionTitle("Read-aloud languages")
+            ReadAloudLanguages(voices, enabledLanguages, onSetLanguage)
+
+            HorizontalDivider(Modifier.padding(top = 8.dp))
             SectionTitle("Storage")
             OptionRow(
                 icon = { Icon(Icons.Default.AutoDelete, contentDescription = null) },
@@ -178,6 +195,79 @@ fun OptionsScreen(
             },
             onDismiss = { choosingKeep = false },
         )
+    }
+}
+
+/**
+ * A switch per language with a voice on this phone, sorted by name. The languages
+ * turned on are the ones articles are detected in and read with; the last one can't be
+ * turned off.
+ */
+@Composable
+private fun ReadAloudLanguages(
+    voices: List<TtsLanguage>?,
+    enabled: Set<String>,
+    onSet: (id: String, on: Boolean) -> Unit,
+) {
+    val context = LocalContext.current
+    Text(
+        "Articles are read in the language they're written in, among the ones turned on " +
+            "here. Only languages with a voice on this phone are listed.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
+    )
+    when {
+        voices == null -> Text(
+            "Checking the phone's voices…",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(16.dp),
+        )
+        voices.isEmpty() -> Text(
+            "No voices found. Install a text-to-speech engine or voices in Android Settings.",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(16.dp),
+        )
+        else -> {
+            val onCount = voices.count { it.id in enabled }
+            voices.forEach { lang ->
+                val on = lang.id in enabled
+                val locked = on && onCount == 1
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .toggleable(value = on, enabled = !locked, role = Role.Switch) { onSet(lang.id, it) }
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                ) {
+                    Text(
+                        lang.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Switch(checked = on, onCheckedChange = null, enabled = !locked)
+                }
+            }
+        }
+    }
+    TextButton(
+        onClick = { openTtsSettings(context) },
+        modifier = Modifier.padding(horizontal = 8.dp),
+    ) {
+        Icon(Icons.Default.RecordVoiceOver, contentDescription = null, Modifier.size(18.dp))
+        Text("Add voices in Android settings", modifier = Modifier.padding(start = 8.dp))
+    }
+}
+
+/** Android's text-to-speech settings (engine, voice downloads), or general settings. */
+private fun openTtsSettings(context: Context) {
+    for (action in listOf("com.android.settings.TTS_SETTINGS", Settings.ACTION_SETTINGS)) {
+        try {
+            context.startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            return
+        } catch (e: ActivityNotFoundException) {
+            // try the next one
+        }
     }
 }
 

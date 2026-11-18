@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -41,6 +42,7 @@ import androidx.navigation.navArgument
 import com.yoreader.app.YoReaderApp
 import com.yoreader.app.data.FeedUrl
 import com.yoreader.app.tts.ArticleSpeaker
+import com.yoreader.app.tts.TtsLanguages
 import com.yoreader.app.ui.articles.ArticleScope
 import com.yoreader.app.ui.articles.ArticlesScreen
 import com.yoreader.app.ui.articles.ArticlesViewModel
@@ -94,6 +96,13 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
     val speaker = remember(context) { (context.applicationContext as YoReaderApp).speaker }
     val speech by speaker.state.collectAsStateWithLifecycle()
     val speechRate by speaker.rate.collectAsStateWithLifecycle()
+    // Languages to switch between while reading: turned on in Options, with a voice.
+    val appSettings = remember(context) { (context.applicationContext as YoReaderApp).settings }
+    val ttsLanguages by appSettings.ttsLanguages.collectAsStateWithLifecycle()
+    val voices by speaker.voices.collectAsStateWithLifecycle()
+    val readingLanguages = remember(ttsLanguages, voices) {
+        speaker.readingLanguages().mapNotNull { TtsLanguages.byId(it) }
+    }
     val snackbar = remember { SnackbarHostState() }
     // Read-aloud errors (e.g. no voice for the language) can happen on any screen.
     // Android 13+: the read-aloud controls (notification, lock screen) need permission
@@ -164,7 +173,8 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                         rate = speechRate,
                         onSlower = speaker::slower,
                         onFaster = speaker::faster,
-                        onSwitchLanguage = speaker::switchLanguage,
+                        languages = readingLanguages,
+                        onSetLanguage = speaker::setLanguage,
                         onOpen = {
                             val page = speech.pageUrl
                             val route = if (page != null) webRoute(page) else speech.articleId?.let { "article/$it" }
@@ -407,7 +417,15 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                     val settings = remember(context) { (context.applicationContext as YoReaderApp).settings }
                     val textZoom by settings.textZoom.collectAsStateWithLifecycle()
                     val keepReadDays by settings.keepReadDays.collectAsStateWithLifecycle()
+                    // Asked again on every return, e.g. after adding voices in Android settings.
+                    LifecycleResumeEffect(Unit) {
+                        speaker.checkVoices()
+                        onPauseOrDispose { }
+                    }
                     OptionsScreen(
+                        voices = voices?.let { ids -> TtsLanguages.ALL.filter { it.id in ids } },
+                        enabledLanguages = ttsLanguages,
+                        onSetLanguage = settings::setTtsLanguage,
                         textZoom = textZoom,
                         onSetTextZoom = settings::setTextZoom,
                         keepReadDays = keepReadDays,

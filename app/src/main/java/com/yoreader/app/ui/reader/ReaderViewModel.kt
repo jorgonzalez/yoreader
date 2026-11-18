@@ -10,7 +10,6 @@ import com.yoreader.app.data.ArticleWithFeed
 import com.yoreader.app.data.SearchText
 import com.yoreader.app.fetch.Html
 import com.yoreader.app.tts.ArticleSpeaker
-import com.yoreader.app.tts.SpeechText
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -114,7 +113,7 @@ class ReaderViewModel(
                 _messages.send("The feed only has a short summary. Tap Clean up to get the full article.")
             }
         }
-        val language = SpeechText.guessLanguage(a.title + "\n" + paragraphs.joinToString("\n"))
+        val language = app.speaker.guessLanguage(a.title + "\n" + paragraphs.joinToString("\n"))
             ?: a.language
         speaker.play(
             a.id, a.title, paragraphs, language,

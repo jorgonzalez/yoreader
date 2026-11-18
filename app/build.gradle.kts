@@ -127,4 +127,6 @@ dependencies {
     testImplementation(libs.junit)
     // Real XmlPullParser for JVM unit tests (android.jar only has stubs).
     testImplementation(libs.kxml2)
+    // Real org.json for JVM unit tests (sync file), same reason.
+    testImplementation(libs.org.json)
 }

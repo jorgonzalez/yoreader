@@ -417,6 +417,8 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                     val settings = remember(context) { (context.applicationContext as YoReaderApp).settings }
                     val textZoom by settings.textZoom.collectAsStateWithLifecycle()
                     val keepReadDays by settings.keepReadDays.collectAsStateWithLifecycle()
+                    val app = context.applicationContext as YoReaderApp
+                    val sync by app.laptopSync.state.collectAsStateWithLifecycle()
                     // Asked again on every return, e.g. after adding voices in Android settings.
                     LifecycleResumeEffect(Unit) {
                         speaker.checkVoices()
@@ -430,6 +432,10 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                         onSetTextZoom = settings::setTextZoom,
                         keepReadDays = keepReadDays,
                         onSetKeepReadDays = settings::setKeepReadDays,
+                        sync = sync,
+                        onUseSyncFile = { uri -> app.appScope.launch { app.laptopSync.useFile(uri) } },
+                        onSyncNow = { app.syncLaptopSoon() },
+                        onStopSync = { app.laptopSync.stop() },
                         onBack = { navController.popBackStack() },
                     )
                 }

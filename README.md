@@ -34,6 +34,9 @@ To check a download, compare it with the output of `shasum -a 256 yoreader-0.6.0
   in the notification panel and on the lock screen.
 - **Clean up.** Main-content extraction for any article or page you open, in the
   spirit of trafilatura, using Readability4J.
+- **Laptop page.** Read the same articles in a browser on your computer
+  (Chrome, Edge or Brave), with read and saved kept the same on both, through a
+  sync file in Google Drive. No server and no account: see [Laptop page](#laptop-page).
 
 ## Stack
 
@@ -47,7 +50,7 @@ Everything below works and is in version 0.6.0 unless marked otherwise.
 
 - Gradle project (Kotlin DSL, version catalog), minSdk 26, targetSdk 35
 - Room data model: `Feed`, `FeedGroup`, `FeedGroupCrossRef` (many-to-many),
-  `Article`, plus DAOs and `AppDatabase` (schema v5, with migrations from v1)
+  `Article`, plus DAOs and `AppDatabase` (schema v6, with migrations from v1)
 - **Layout:** an always-visible bottom bar (menu, saved, latest, search; each closes
   the side menu) and a side menu opened from the menu icon: All articles; groups
   with unread counts, each expandable to "All in <group>" and its sources with
@@ -144,12 +147,49 @@ Everything below works and is in version 0.6.0 unless marked otherwise.
   are remembered per feed (`removed_articles`), so a refresh doesn't bring them
   back while the feed still lists them. Clean-up runs at start-up, when the
   setting changes, and after each background refresh of all feeds.
-- **Unit tests** (58): feed parsing, dates, HTML helpers and feed discovery, search
+- **Laptop sync** (`sync/`, Options → Laptop): the phone keeps a sync file chosen
+  with Android's file picker (e.g. in Google Drive) with its feeds, groups, unread
+  and saved articles (with their text) and the ones read in the last 7 days, and
+  takes the read/saved changes made on the laptop page. Each change carries its
+  time (`readChangedAt`/`starredChangedAt`), and the newest wins. Syncs when the app
+  is opened, when it's left (as background work, so it can finish), after each
+  background refresh, and with "Sync now". A sync with nothing new costs a few
+  milliseconds: the phone only reads the first bytes of the file and a short summary
+  of the database.
+- **Laptop page** (`web/`, plain HTML/CSS/JS, no build step): unread, saved,
+  recently read, groups and sources with unread counts; the article in a sandboxed
+  frame styled like the reader; mark read/unread and save; keys j/k, m, s, o. Format
+  of the file shared with the phone: [`sync/README.md`](sync/README.md).
+- **Unit tests** (64): feed parsing, dates, HTML helpers and feed discovery, search
   folding, OPML, clean up, speech text and speed, language detection in all 14
   languages, the reader's HTML
-  (paragraph numbering, script stripping, text size), and the Options values
-  (text sizes, clean-up period). Run with
-  `./gradlew :app:testDebugUnitTest`.
+  (paragraph numbering, script stripping, text size), the Options values
+  (text sizes, clean-up period) and the sync file. Run with
+  `./gradlew :app:testDebugUnitTest`. The laptop page's sync logic has its own
+  tests (7), on the same sample file: `node --test web/test`.
+
+## Laptop page
+
+Read on a computer what the phone downloads, with the same articles read and saved
+on both. The phone does the downloading (as always); the computer reads a file the
+phone keeps up to date, so there's no server and nothing to sign in to.
+
+1. **Phone:** Options → Laptop → **Create sync file**, and save it in Google Drive
+   (any storage app in the file picker works, e.g. Dropbox).
+2. **Computer:** install Google Drive for desktop, so the file is also in a folder on
+   the computer.
+3. Open [jorgonzalez.github.io/yoreader](https://jorgonzalez.github.io/yoreader/) in
+   Chrome, Edge or Brave and choose that file. The page runs in the browser only: it
+   reads and writes the file on your computer, and your articles never go to GitHub.
+   It can also be opened from a copy of `web/` served locally.
+
+**Brave** turns off the feature the page needs (the File System Access API) by
+default: open `brave://flags/#file-system-access-api`, set it to Enabled, and restart.
+
+What you read on the computer reaches the phone when yoreader is opened there (or
+at its next background refresh); what you read on the phone reaches the computer
+when you leave the app, plus however long Google Drive takes to copy the file. Read
+articles are in the file for 7 days without their text (use "Open original").
 
 ## Open the project
 
@@ -198,6 +238,8 @@ update an installed yoreader. To publish:
    repeat at all and headset buttons (both by playing pre-rendered audio in the
    app). Following the text on screen is done, by paragraph; by sentence or word
    is possible later.
+   Laptop page (read and save on a computer, synced through a file in Google Drive)
+   done.
 6. **Polish** - OPML import/export, article search and Options (text size,
    clean-up of old read articles, read-aloud languages) done; offline reading to do.
 7. **Sharing** (idea, not decided) - share articles with contacts inside the app,
@@ -213,6 +255,7 @@ app/src/main/java/com/yoreader/app/
   fetch/                Feed download, parsing, background refresh
   ui/                   Compose screens
   clean/                Clean up (main-content extraction)
+  sync/                 Laptop sync file (read/write, merge, background work)
   settings/             Options stored on the phone (SharedPreferences)
   tts/                  Read aloud
   ui/shell/             Bottom bar, side drawer, now-playing bar
@@ -221,4 +264,6 @@ app/src/main/java/com/yoreader/app/
   ui/reader/            Article reader
   ui/options/           Options screen
   ui/theme/             Dark color scheme
+sync/                   Sync file format (README) and the sample both test suites read
+web/                    Laptop page (index.html, app.js, sync.js, style.css; tests in web/test)
 ```

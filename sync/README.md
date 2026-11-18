@@ -1,0 +1,49 @@
+# Laptop sync file
+
+The phone and the laptop page (`web/`) share one JSON file, e.g. `yoreader-sync.json`
+in Google Drive. The phone chooses it in Options → Laptop (Android file picker); the
+laptop page chooses the same file through the Google Drive for desktop folder. No
+server is involved: each side reads the file, takes the newer changes and writes it.
+
+```json
+{
+  "writtenBy": "phone",
+  "writtenAt": 1763460000000,
+  "format": "yoreader-sync",
+  "version": 1,
+  "groups": ["News", "Tech"],
+  "feeds": [
+    { "url": "https://example.org/feed.xml", "title": "Example", "siteUrl": "https://example.org", "groups": ["News"] }
+  ],
+  "articles": [
+    {
+      "feed": "https://example.org/feed.xml",
+      "guid": "https://example.org/a1",
+      "title": "Title",
+      "link": "https://example.org/a1",
+      "published": 1763450000000,
+      "excerpt": "Plain text, up to 300 characters",
+      "html": "<p>Article text (unread and saved articles only)</p>",
+      "read": false, "readAt": null,
+      "saved": false, "savedAt": null
+    }
+  ]
+}
+```
+
+- Times are milliseconds since 1970 (UTC). Optional fields may be missing or `null`.
+- An article is identified by `feed` (its feed URL) + `guid`.
+- `readAt` / `savedAt`: when that state last changed, on either side. For each article
+  and each of the two states, the newest change wins. `null` means it never changed
+  since sync existed, so any dated change wins over it.
+- The phone owns the content: feeds, groups and which articles are in the file
+  (unread, saved, and read in the last 7 days; text only for unread and saved).
+- The laptop only changes `read`/`readAt`/`saved`/`savedAt` (and sets `writtenBy` to
+  `"web"`). It keeps its own changes in the browser until a write by the phone
+  includes them, so a phone write that crossed with the laptop's loses nothing.
+- `writtenBy` and `writtenAt` come first in the file: the phone reads only the first
+  200 bytes to see whether the file is still its own last write.
+- A reader must refuse a file with a higher `version` than it knows.
+
+`sample.json` is read by the tests on both sides (`app/src/test/.../sync/SyncFileTest.kt`
+and `web/test/sync.test.js`).

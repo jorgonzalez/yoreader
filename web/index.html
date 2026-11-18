@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>yoreader</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="setup" class="setup" hidden>
+  <img src="icon.svg" alt="" width="72" height="72">
+  <h1>yoreader</h1>
+  <div id="setup-body"></div>
+</div>
+
+<div id="app" class="app" hidden>
+  <nav id="nav" class="nav">
+    <div class="brand"><img src="icon.svg" alt="" width="22" height="22"> yoreader</div>
+    <div id="nav-items"></div>
+    <div id="status" class="status"></div>
+  </nav>
+  <section class="list-pane">
+    <header class="pane-bar">
+      <h2 id="list-title"></h2>
+      <label id="show-read-label" class="toggle"><input type="checkbox" id="show-read"> Show read</label>
+    </header>
+    <ol id="list" class="list"></ol>
+  </section>
+  <section id="reader-pane" class="reader-pane">
+    <header class="pane-bar reader-bar" id="reader-bar" hidden>
+      <button id="back" class="icon-button narrow-only" title="Back to the list">←</button>
+      <button id="toggle-read" title="Mark read / unread (m)"></button>
+      <button id="toggle-saved" title="Save for later (s)"></button>
+      <a id="open-original" target="_blank" rel="noopener noreferrer" title="Open the original page (o)">Open original ↗</a>
+    </header>
+    <iframe id="reader" title="Article" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe>
+    <p id="reader-empty" class="reader-empty">Choose an article.<br><span class="keys">j / k next / previous · m read · s save · o original</span></p>
+  </section>
+</div>
+
+<script src="sync.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

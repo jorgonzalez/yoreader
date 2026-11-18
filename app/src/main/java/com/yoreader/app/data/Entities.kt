@@ -99,6 +99,10 @@ data class Article(
     val publishedAt: Long? = null,
     val isRead: Boolean = false,
     val isStarred: Boolean = false,
+    /** When [isRead] last changed (ms), here or on the laptop; null: never since sync existed. */
+    val readChangedAt: Long? = null,
+    /** When [isStarred] (saved) last changed (ms); null: never since sync existed. */
+    val starredChangedAt: Long? = null,
     /** Title + summary + content, folded by [SearchText] for accent-insensitive search. */
     val searchText: String? = null,
 )
@@ -138,6 +142,22 @@ data class ArticleListRow(
     val publishedAt: Long?,
     val isRead: Boolean,
     val isStarred: Boolean,
+)
+
+/** An article as written to the laptop sync file. */
+data class SyncArticleRow(
+    val feedUrl: String,
+    val guid: String,
+    val title: String,
+    val link: String,
+    val publishedAt: Long?,
+    /** Text to read on the laptop; only for unread and saved articles. */
+    val html: String?,
+    val excerptHtml: String?,
+    val isRead: Boolean,
+    val readChangedAt: Long?,
+    val isStarred: Boolean,
+    val starredChangedAt: Long?,
 )
 
 /** An article for the reader, with the name of its source. */

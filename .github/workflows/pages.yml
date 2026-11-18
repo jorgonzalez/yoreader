@@ -29,7 +29,7 @@ jobs:
         with:
           node-version: 22
       - name: Test the sync logic
-        run: node --test web/test
+        run: node --test web/test/*.test.js
       - name: Page files only (no tests)
         run: mkdir -p _site && cp web/index.html web/app.js web/sync.js web/style.css web/icon.svg _site/
       - uses: actions/upload-pages-artifact@v3

@@ -166,7 +166,7 @@ Everything below works and is in version 0.6.0 unless marked otherwise.
   (paragraph numbering, script stripping, text size), the Options values
   (text sizes, clean-up period) and the sync file. Run with
   `./gradlew :app:testDebugUnitTest`. The laptop page's sync logic has its own
-  tests (7), on the same sample file: `node --test web/test`.
+  tests (7), on the same sample file: `node --test web/test/*.test.js`.
 
 ## Laptop page
 

@@ -6,6 +6,9 @@ build records its commit id; both show at the bottom of the side menu.
 
 ## Unreleased
 
+- Fixed: cleaning up an article could close the app when the site refused the
+  download (e.g. sites behind Cloudflare's browser check). Such sites now get a
+  message saying to open the original page instead.
 - Double tap an article in the reader to clean it up; double tap again to switch
   between the cleaned version and the feed's. Double-tapping on a link cleans
   too, instead of opening the link.

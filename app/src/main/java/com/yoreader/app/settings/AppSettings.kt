@@ -68,11 +68,11 @@ class AppSettings(context: Context) {
     }
 }
 
-/** Article text sizes offered: 80% to 150% in steps of 10. */
+/** Article text sizes offered: 80% to 150% in steps of 5. */
 object TextZoom {
     const val MIN = 80
     const val MAX = 150
-    const val STEP = 10
+    const val STEP = 5
     const val DEFAULT = 100
 
     /** Number of stops between [MIN] and [MAX] (for a stepped slider). */

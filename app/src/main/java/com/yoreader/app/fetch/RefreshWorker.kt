@@ -32,6 +32,8 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             app.laptopSync.sync()
         } else {
             app.refresher.refresh(feedId)
+            // A source just added (maybe from the laptop): its articles go there now.
+            app.laptopSync.sync()
         }
         return Result.success()
     }

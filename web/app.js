@@ -9,6 +9,7 @@
 
   var S = window.YoSync;
   var PENDING_KEY = 'yoreader.pending';
+  var PENDING_FEEDS_KEY = 'yoreader.pendingFeeds';
   var VIEW_KEY = 'yoreader.view';
   var POLL_MS = 30 * 1000;
   var WRITE_DELAY_MS = 1500;
@@ -18,6 +19,8 @@
     file: null,
     lastModified: null,
     pending: loadPending(),
+    /** Sources added here that the phone hasn't added yet. */
+    pendingFeeds: loadPendingFeeds(),
     view: loadView(),
     showRead: false,
     currentKey: null,
@@ -37,6 +40,17 @@
   }
   function savePending() {
     try { localStorage.setItem(PENDING_KEY, JSON.stringify(state.pending)); } catch (e) { /* private window */ }
+  }
+  function loadPendingFeeds() {
+    try {
+      var list = JSON.parse(localStorage.getItem(PENDING_FEEDS_KEY));
+      return Array.isArray(list) ? list : [];
+    } catch (e) {
+      return [];
+    }
+  }
+  function savePendingFeeds() {
+    try { localStorage.setItem(PENDING_FEEDS_KEY, JSON.stringify(state.pendingFeeds)); } catch (e) { /* private window */ }
   }
   function loadView() {
     try { return JSON.parse(localStorage.getItem(VIEW_KEY)) || { kind: 'unread' }; } catch (e) { return { kind: 'unread' }; }
@@ -158,8 +172,10 @@
         state.lastModified = f.lastModified;
         state.error = null;
         state.pending = S.prune(state.pending, file, Date.now());
+        state.pendingFeeds = S.pruneFeeds(state.pendingFeeds, file, Date.now());
         savePending();
-        if (S.needsWrite(file, state.pending)) scheduleWrite();
+        savePendingFeeds();
+        if (S.needsWrite(file, state.pending, state.pendingFeeds)) scheduleWrite();
         render();
       });
     }).catch(fail);
@@ -179,13 +195,15 @@
     return readFile().then(function (read) {
       var file = S.parse(read.text);
       state.pending = S.prune(state.pending, file, now);
+      state.pendingFeeds = S.pruneFeeds(state.pendingFeeds, file, now);
       savePending();
-      if (!S.needsWrite(file, state.pending)) {
+      savePendingFeeds();
+      if (!S.needsWrite(file, state.pending, state.pendingFeeds)) {
         state.file = file;
         state.lastModified = read.lastModified;
         return;
       }
-      var out = S.applyPending(file, state.pending, now);
+      var out = S.applyPending(file, state.pending, now, state.pendingFeeds);
       return state.handle.createWritable().then(function (w) {
         return w.write(JSON.stringify(out)).then(function () { return w.close(); });
       }).then(function () {
@@ -338,10 +356,28 @@
         box.appendChild(navButton(g, n, { kind: 'group', id: g }));
       });
     }
-    if (state.file.feeds.length) {
+    var waiting = state.pendingFeeds.filter(function (r) { return !r.remove && !S.findFeed(state.file, r.url); });
+    if (state.file.feeds.length || waiting.length) {
       box.appendChild(heading('Sources'));
       state.file.feeds.forEach(function (f) {
-        box.appendChild(navButton(f.title, unreadByFeed[f.url] || 0, { kind: 'feed', id: f.url }));
+        var b = navButton(f.title, unreadByFeed[f.url] || 0, { kind: 'feed', id: f.url });
+        if ((S.requestFor(state.pendingFeeds, f.url) || {}).remove) {
+          b.classList.add('removing');
+          b.title = 'Waiting for the phone to remove it';
+          b.lastChild.textContent = 'removing';
+        } else if (f.error) {
+          b.classList.add('failing');
+          b.title = f.error;
+        }
+        box.appendChild(b);
+      });
+      waiting.forEach(function (r) {
+        var item = document.createElement('div');
+        item.className = 'nav-item pending';
+        item.title = 'Waiting for the phone to add it';
+        item.innerHTML = '<span class="name"></span><span class="count">waiting</span>';
+        item.firstChild.textContent = r.url.replace(/^https?:\/\//, '');
+        box.appendChild(item);
       });
     }
   }
@@ -352,6 +388,13 @@
     $('show-read-label').hidden = !filtered;
     $('show-read').checked = state.showRead;
     var feeds = feedsByUrl();
+    var source = state.view.kind === 'feed' ? feeds[state.view.id] : null;
+    $('remove-source').hidden = !source;
+    if (source) {
+      var removing = (S.requestFor(state.pendingFeeds, source.url) || {}).remove;
+      $('remove-source').disabled = !!removing;
+      $('remove-source').textContent = removing ? 'Removal waiting for the phone' : 'Remove source';
+    }
     var ol = $('list');
     ol.textContent = '';
     var items = listed();
@@ -424,7 +467,7 @@
     var f = state.file;
     var who = f.writtenBy === 'phone' ? 'the phone' : 'this page';
     var html = 'Updated by ' + who + (f.writtenAt ? ' ' + relative(f.writtenAt) : '');
-    var waiting = Object.keys(state.pending).length;
+    var waiting = Object.keys(state.pending).length + state.pendingFeeds.length;
     if (waiting) html += '<br>' + waiting + ' change' + (waiting > 1 ? 's' : '') + ' waiting for the phone';
     if (state.error) html += '<br><span class="error"></span>';
     html += '<br><button id="change-file">Change sync file</button>';
@@ -498,6 +541,73 @@
   $('toggle-saved').onclick = function () { var a = current(); if (a) setField(a, 'saved', !a.saved); };
   $('back').onclick = function () { state.currentKey = null; render(); };
   $('show-read').onchange = function (e) { state.showRead = e.target.checked; render(); };
+
+  // --- Adding a source ---------------------------------------------------------------
+
+  function openAddSource() {
+    var box = $('add-source-groups');
+    box.textContent = '';
+    state.file.groups.forEach(function (g) {
+      var label = document.createElement('label');
+      var input = document.createElement('input');
+      input.type = 'checkbox';
+      input.value = g;
+      // Viewing a group: that's probably where it goes.
+      input.checked = state.view.kind === 'group' && state.view.id === g;
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(' ' + g));
+      box.appendChild(label);
+    });
+    $('add-source-message').hidden = true;
+    $('add-source-open').hidden = true;
+    $('add-source-form').hidden = false;
+    $('add-source-url').focus();
+  }
+
+  function closeAddSource() {
+    $('add-source-form').hidden = true;
+    $('add-source-open').hidden = false;
+    $('add-source-url').value = '';
+  }
+
+  function addSourceMessage(text) {
+    $('add-source-message').textContent = text;
+    $('add-source-message').hidden = false;
+  }
+
+  $('remove-source').onclick = function () {
+    var f = state.view.kind === 'feed' && feedsByUrl()[state.view.id];
+    if (!f) return;
+    if (!confirm('Remove “' + f.title + '”? Its articles go too, also on the phone (when it next syncs).')) return;
+    state.pendingFeeds = S.removeFeed(state.pendingFeeds, f.url, Date.now());
+    if (state.handle) savePendingFeeds(); // not in the demo
+    scheduleWrite();
+    render();
+  };
+
+  $('add-source-open').onclick = openAddSource;
+  $('add-source-cancel').onclick = closeAddSource;
+  $('add-source-form').onkeydown = function (e) { if (e.key === 'Escape') closeAddSource(); };
+  $('add-source-form').onsubmit = function (e) {
+    e.preventDefault();
+    var url = S.normalizeUrl($('add-source-url').value);
+    if (!url) return addSourceMessage("That doesn't look like a web address.");
+    var groups = Array.prototype.filter.call($('add-source-groups').querySelectorAll('input'), function (i) {
+      return i.checked;
+    }).map(function (i) { return i.value; });
+    var existing = S.findFeed(state.file, url);
+    if (existing && (S.requestFor(state.pendingFeeds, existing.url) || {}).remove) {
+      return addSourceMessage('“' + existing.title + '” is waiting for the phone to remove it; add it again after that.');
+    }
+    if (existing && groups.every(function (g) { return (existing.groups || []).indexOf(g) >= 0; })) {
+      return addSourceMessage('“' + existing.title + '” is already one of your sources.');
+    }
+    state.pendingFeeds = S.addFeed(state.pendingFeeds, existing ? existing.url : url, groups, Date.now());
+    if (state.handle) savePendingFeeds(); // not in the demo
+    closeAddSource();
+    scheduleWrite();
+    render();
+  };
 
   document.addEventListener('keydown', function (e) {
     if (e.ctrlKey || e.metaKey || e.altKey || !state.file || $('app').hidden) return;

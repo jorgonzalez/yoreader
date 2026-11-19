@@ -18,11 +18,26 @@
   <nav id="nav" class="nav">
     <div class="brand"><img src="icon.svg" alt="" width="22" height="22"> yoreader</div>
     <div id="nav-items"></div>
+    <div class="add-source">
+      <button id="add-source-open" class="nav-item add-open"><span class="name">+ Add source</span></button>
+      <form id="add-source-form" class="add-form" hidden>
+        <label for="add-source-url">Feed or website address</label>
+        <input id="add-source-url" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="example.org/feed.xml">
+        <div id="add-source-groups" class="add-groups"></div>
+        <p id="add-source-message" class="add-message" hidden></p>
+        <div class="add-buttons">
+          <button type="submit" class="primary">Add</button>
+          <button type="button" id="add-source-cancel">Cancel</button>
+        </div>
+        <p class="add-hint">The phone adds it the next time it syncs: when yoreader is opened or closed, or at the hourly refresh.</p>
+      </form>
+    </div>
     <div id="status" class="status"></div>
   </nav>
   <section class="list-pane">
     <header class="pane-bar">
       <h2 id="list-title"></h2>
+      <button id="remove-source" class="remove-source" hidden>Remove source</button>
       <label id="show-read-label" class="toggle"><input type="checkbox" id="show-read"> Show read</label>
     </header>
     <ol id="list" class="list"></ol>

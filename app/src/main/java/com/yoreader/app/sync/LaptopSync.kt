@@ -6,6 +6,11 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.room.withTransaction
 import com.yoreader.app.data.AppDatabase
+import com.yoreader.app.data.FeedUrl
+import com.yoreader.app.data.addFeed
+import com.yoreader.app.data.groupIds
+import com.yoreader.app.data.removeFeed
+import com.yoreader.app.fetch.RefreshScheduler
 import com.yoreader.app.fetch.Html
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,12 +21,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.FileNotFoundException
 import java.util.concurrent.TimeUnit
 
 /**
  * Keeps a sync file (chosen in Options, e.g. in Google Drive) up to date for the
- * laptop page, and takes the read/saved changes made there. Runs after background
+ * laptop page, and takes the read/saved changes and sources added or removed there. Runs after background
  * refreshes and when the app is opened or left. The file is reached through Android's
  * file picker permission, so it works with any storage app that offers files there.
  */
@@ -68,6 +75,7 @@ class LaptopSync(
             .putString(KEY_URI, uri.toString())
             .putString(KEY_NAME, name)
             .remove(KEY_LAST_SYNC).remove(KEY_ERROR).remove(KEY_FINGERPRINT).remove(KEY_WRITTEN_AT)
+            .remove(KEY_ADDED).remove(KEY_REMOVED)
             .apply()
         _state.value = State(fileUri = uri, fileName = name)
         sync()
@@ -118,18 +126,23 @@ class LaptopSync(
         if (!ownLastWrite && head.isNotBlank()) {
             val text = resolver.openInputStream(uri)?.use { it.readBytes().toString(Charsets.UTF_8) }
                 ?: throw FileNotFoundException()
-            val statuses = SyncFile.parse(text).statuses
+            val contents = SyncFile.parse(text)
             db.withTransaction {
-                for (s in statuses) {
+                for (s in contents.statuses) {
                     s.readAt?.let { dao.syncRead(s.feedUrl, s.guid, s.read, it) }
                     s.savedAt?.let { dao.syncSaved(s.feedUrl, s.guid, s.saved, it) }
                 }
             }
+            addFeeds(contents.addFeeds)
+            removeFeeds(contents.removeFeeds)
         }
 
         // 2. The phone's view, written unless nothing changed since the last write. The
         //    day counts too: read articles leave the file after READ_DAYS.
         val time = now()
+        val keep = TimeUnit.DAYS.toMillis(DONE_DAYS)
+        val added = done(KEY_ADDED).filter { time - it.at <= keep }
+        val removed = done(KEY_REMOVED).filter { time - it.at <= keep }
         val fingerprint = dao.syncFingerprint() + "|" + TimeUnit.MILLISECONDS.toDays(time)
         if (ownLastWrite && fingerprint == prefs.getString(KEY_FINGERPRINT, null)) return
 
@@ -151,6 +164,8 @@ class LaptopSync(
                     savedAt = it.starredChangedAt,
                 )
             },
+            addedFeeds = added,
+            removedFeeds = removed,
         )
         val bytes = SyncFile.write(body, time).toByteArray(Charsets.UTF_8)
         // "wt" replaces the whole file; a few storage apps only accept "w".
@@ -162,8 +177,52 @@ class LaptopSync(
             resolver.openOutputStream(uri, "w")
         } ?: throw FileNotFoundException()
         out.use { it.write(bytes) }
-        prefs.edit().putString(KEY_FINGERPRINT, fingerprint).putLong(KEY_WRITTEN_AT, time).apply()
+        prefs.edit()
+            .putString(KEY_FINGERPRINT, fingerprint)
+            .putLong(KEY_WRITTEN_AT, time)
+            .putString(KEY_ADDED, encode(added))
+            .putString(KEY_REMOVED, encode(removed))
+            .apply()
     }
+
+    /**
+     * Adds the sources added on the laptop that weren't taken yet, and remembers them so
+     * the file can tell the laptop (which keeps asking until it sees them there).
+     */
+    private suspend fun addFeeds(requests: List<SyncFile.FeedRequest>) {
+        val done = done(KEY_ADDED)
+        val fresh = requests.filter { r -> done.none { it.url == r.url && it.at == r.at } }
+        if (fresh.isEmpty()) return
+        for (r in fresh) {
+            val url = FeedUrl.normalize(r.url) ?: continue
+            val (id, isNew) = db.addFeed(url, db.groupIds(r.groups)) ?: continue
+            if (isNew) RefreshScheduler.refreshFeed(context, id)
+        }
+        prefs.edit().putString(KEY_ADDED, encode(done + fresh)).apply()
+    }
+
+    /** Removes the sources removed on the laptop, remembering the requests as for adding. */
+    private suspend fun removeFeeds(requests: List<SyncFile.FeedRequest>) {
+        val done = done(KEY_REMOVED)
+        val fresh = requests.filter { r -> done.none { it.url == r.url && it.at == r.at } }
+        if (fresh.isEmpty()) return
+        for (r in fresh) db.removeFeed(r.url)
+        prefs.edit().putString(KEY_REMOVED, encode(done + fresh)).apply()
+    }
+
+    /** Requests taken from the laptop under [key] (url and time, without groups). */
+    private fun done(key: String): List<SyncFile.FeedRequest> = try {
+        val list = JSONArray(prefs.getString(key, null) ?: "[]")
+        (0 until list.length()).map { i ->
+            val o = list.getJSONObject(i)
+            SyncFile.FeedRequest(o.getString("url"), emptyList(), o.getLong("at"))
+        }
+    } catch (e: Exception) {
+        emptyList()
+    }
+
+    private fun encode(list: List<SyncFile.FeedRequest>): String =
+        JSONArray().apply { list.forEach { put(JSONObject().put("url", it.url).put("at", it.at)) } }.toString()
 
     private suspend fun feedEntries(): List<SyncFile.FeedEntry> {
         val groupsByFeed = mutableMapOf<Long, MutableList<String>>()
@@ -171,7 +230,7 @@ class LaptopSync(
             g.feeds.forEach { f -> groupsByFeed.getOrPut(f.id) { mutableListOf() } += g.group.name }
         }
         return db.feedDao().getAll().sortedBy { it.title.lowercase() }.map {
-            SyncFile.FeedEntry(it.url, it.title, it.siteUrl, groupsByFeed[it.id].orEmpty())
+            SyncFile.FeedEntry(it.url, it.title, it.siteUrl, groupsByFeed[it.id].orEmpty(), it.lastError)
         }
     }
 
@@ -208,10 +267,15 @@ class LaptopSync(
         const val KEY_ERROR = "error"
         const val KEY_FINGERPRINT = "fingerprint"
         const val KEY_WRITTEN_AT = "written_at"
+        const val KEY_ADDED = "added_feeds"
+        const val KEY_REMOVED = "removed_feeds"
 
         /** Read articles stay in the file this long after being read, so the laptop sees it. */
         const val READ_DAYS = 7L
         const val EXCERPT_CHARS = 300
         const val PEEK_BYTES = 200
+
+        /** Sources added/removed from the laptop stay listed in the file this long (as the laptop's wait). */
+        const val DONE_DAYS = 30L
     }
 }

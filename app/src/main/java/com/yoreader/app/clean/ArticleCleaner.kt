@@ -41,15 +41,21 @@ class ArticleCleaner(private val client: OkHttpClient) {
             return CleanResult.Failure("Invalid web address")
         }
 
+        // All of it off the main thread, closing included: closing an HTTP/2 response
+        // can write to the network (e.g. a stream reset), which Android forbids there.
         val (finalUrl, bytes) = try {
-            client.newCall(request).await().use { r ->
-                if (!r.isSuccessful) return CleanResult.Failure("The page couldn't be loaded (HTTP ${r.code})")
-                val body = withContext(Dispatchers.IO) {
-                    val source = r.body?.source() ?: return@withContext null
-                    if (source.request(MAX_BYTES + 1)) null else source.readByteArray()
-                } ?: return CleanResult.Failure("The page is too large")
-                r.request.url.toString() to body
-            }
+            withContext(Dispatchers.IO) {
+                client.newCall(request).await().use { r ->
+                    // Cloudflare's "Verifying your connection" page: only real browsers get past it.
+                    if (r.header("cf-mitigated") == "challenge") {
+                        return@withContext Failed("This site only lets browsers in; use Open original page")
+                    }
+                    if (!r.isSuccessful) return@withContext Failed("The page couldn't be loaded (HTTP ${r.code})")
+                    val source = r.body?.source() ?: return@withContext Failed("The page is too large")
+                    if (source.request(MAX_BYTES + 1)) return@withContext Failed("The page is too large")
+                    Loaded(r.request.url.toString(), source.readByteArray())
+                }
+            }.let { if (it is Failed) return CleanResult.Failure(it.message) else it as Loaded }
         } catch (e: UnknownHostException) {
             return CleanResult.Failure("Server not found (offline?)")
         } catch (e: InterruptedIOException) {
@@ -60,6 +66,10 @@ class ArticleCleaner(private val client: OkHttpClient) {
 
         return withContext(Dispatchers.Default) { extract(bytes, finalUrl) }
     }
+
+    private sealed interface Download
+    private data class Loaded(val url: String, val bytes: ByteArray) : Download
+    private data class Failed(val message: String) : Download
 
     companion object {
         private const val MAX_BYTES = 8L * 1024 * 1024

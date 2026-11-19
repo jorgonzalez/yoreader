@@ -4,6 +4,13 @@ An Android RSS reader with a dark UI, user-managed source groups, text-to-speech
 reading (15 languages, as the phone's voices allow), and a one-tap "clean up" that
 turns a cluttered web page into readable article text.
 
+<p>
+  <img src="docs/screenshots/phone-list.png" width="200" alt="Article list of a group">
+  <img src="docs/screenshots/phone-reader.png" width="200" alt="A cleaned-up article in the reader">
+  <img src="docs/screenshots/phone-aloud.png" width="200" alt="Reading aloud: the current paragraph is highlighted, controls at the bottom">
+  <img src="docs/screenshots/phone-options.png" width="200" alt="Options: text size and read-aloud languages">
+</p>
+
 ## Download
 
 **[yoreader-0.7.0.apk](https://github.com/jorgonzalez/yoreader/raw/main/releases/yoreader-0.7.0.apk)**
@@ -187,6 +194,8 @@ phone keeps up to date, so there's no server and nothing to sign in to.
    Chrome, Edge or Brave and choose that file. The page runs in the browser only: it
    reads and writes the file on your computer, and your articles never go to GitHub.
    It can also be opened from a copy of `web/` served locally.
+
+![The laptop page: groups and sources, the article list and the article](docs/screenshots/laptop-page.png)
 
 **Brave** turns off the feature the page needs (the File System Access API) by
 default: open `brave://flags/#file-system-access-api`, set it to Enabled, and restart.

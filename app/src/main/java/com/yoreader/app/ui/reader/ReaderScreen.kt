@@ -226,6 +226,13 @@ fun ReaderScreen(
                     reading = follow.reading,
                     follow = follow.following,
                     onUserScroll = follow.stop,
+                    // Same as the clean-up button: clean, or switch between the versions.
+                    onDoubleTap = when {
+                        cleaning -> null
+                        hasCleaned -> { { onSetShowFeedVersion(!showFeedVersion) } }
+                        link != null -> onClean
+                        else -> null
+                    },
                 )
                 if (follow.offerFollow) {
                     FollowButton(

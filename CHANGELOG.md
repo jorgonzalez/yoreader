@@ -6,6 +6,9 @@ build records its commit id; both show at the bottom of the side menu.
 
 ## Unreleased
 
+- Double tap an article in the reader to clean it up; double tap again to switch
+  between the cleaned version and the feed's. Double-tapping on a link cleans
+  too, instead of opening the link.
 - The article text size from Options now also applies to article lists (titles,
   sources and previews), not only to the reader.
 - Text size changes in 5% steps instead of 10%.

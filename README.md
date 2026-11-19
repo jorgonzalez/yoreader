@@ -77,7 +77,8 @@ Everything below works and is in version 0.7.0 unless marked otherwise.
   dropped. Top bar: read aloud, clean up, save for later, share (title and link, to any
   app: WhatsApp, Signal, email...); menu: mark unread, open original page (in
   the app), open in browser, switch between cleaned and feed version, clean
-  up again.
+  up again. **Double tap** the article to clean it up, and again to switch between
+  the cleaned and the feed's version (a link tap waits a moment to tell the two apart).
 - **Links open in the app** (`ui/reader/WebPageScreen`): "Open original page" and links in
   articles open an in-app page (a small browser: JavaScript on, links followed,
   Back goes back, plain http allowed). Its top bar has Read aloud (cleans the page
@@ -234,7 +235,7 @@ update an installed yoreader. To publish:
 2. **Feed fetching** - done.
 3. **Article list and reader** - done. Lists show the newest 1000 articles; read
    articles are removed after 90 days (configurable in Options).
-4. **Clean up** - done (per article, from the reader).
+4. **Clean up** - done (per article, from the reader: button or double tap).
 5. **TTS** - read-aloud with speed control, screen-off playback and
    notification/lock-screen controls done. Still to do: speed changes with no
    repeat at all and headset buttons (both by playing pre-rendered audio in the

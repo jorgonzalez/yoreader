@@ -5,6 +5,8 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.SystemClock
+import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ViewConfiguration
 import android.webkit.WebChromeClient
@@ -46,6 +48,8 @@ internal data class ReadingSpot(val paragraph: Int, val progress: Float)
  * (so the screen can stop following). JavaScript is on only for that: [ArticleHtml]
  * strips the article's own scripts.
  *
+ * [onDoubleTap], when set, is called on a double tap anywhere on the page.
+ *
  * Text is shown at the size chosen in Options; changing it doesn't reload the page or
  * lose the place (see [ArticleHtml.ZOOM_TOKEN]).
  */
@@ -58,9 +62,11 @@ internal fun ArticleWebView(
     reading: ReadingSpot? = null,
     follow: Boolean = true,
     onUserScroll: () -> Unit = {},
+    onDoubleTap: (() -> Unit)? = null,
 ) {
     val linkHandler by rememberUpdatedState(onLinkClick)
     val userScroll by rememberUpdatedState(onUserScroll)
+    val doubleTap by rememberUpdatedState(onDoubleTap)
     // Survives recompositions: whether the page has loaded, and the last call made.
     val js = remember { ReadingScript() }
     val context = LocalContext.current
@@ -73,9 +79,21 @@ internal fun ArticleWebView(
                 settings.javaScriptEnabled = true
                 settings.allowFileAccess = false
                 settings.allowContentAccess = false
+                // With double tap on, a link opens only once it's clear the tap wasn't the
+                // first of a double tap (which cleans the article instead).
+                var pendingLink: Runnable? = null
+                var doubleTappedAt = 0L
                 webViewClient = object : WebViewClient() {
                     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                        linkHandler(request.url.toString())
+                        val url = request.url.toString()
+                        if (doubleTap == null) {
+                            linkHandler(url)
+                        } else if (SystemClock.uptimeMillis() - doubleTappedAt > LINK_AFTER_DOUBLE_TAP_MS) {
+                            // (The second tap of a double tap on a link also "clicks" it: ignored.)
+                            pendingLink?.let(view::removeCallbacks)
+                            pendingLink = Runnable { pendingLink = null; linkHandler(url) }
+                                .also { view.postDelayed(it, ViewConfiguration.getDoubleTapTimeout().toLong()) }
+                        }
                         return true
                     }
 
@@ -90,7 +108,18 @@ internal fun ArticleWebView(
                 val slop = ViewConfiguration.get(ctx).scaledTouchSlop
                 var downY = 0f
                 var dragging = false
+                val gestures = GestureDetector(ctx, object : GestureDetector.SimpleOnGestureListener() {
+                    override fun onDoubleTap(e: MotionEvent): Boolean {
+                        val action = doubleTap ?: return false
+                        pendingLink?.let(::removeCallbacks)
+                        pendingLink = null
+                        doubleTappedAt = SystemClock.uptimeMillis()
+                        action()
+                        return true
+                    }
+                })
                 setOnTouchListener { _, e ->
+                    gestures.onTouchEvent(e)
                     when (e.actionMasked) {
                         MotionEvent.ACTION_DOWN -> {
                             downY = e.y
@@ -127,6 +156,9 @@ internal fun ArticleWebView(
         modifier = Modifier.fillMaxSize(),
     )
 }
+
+/** Link clicks this soon after a double tap belong to it, not to the link. */
+private const val LINK_AFTER_DOUBLE_TAP_MS = 600L
 
 /** The latest reading-position call for the page, sent once the page has loaded. */
 private class ReadingScript {

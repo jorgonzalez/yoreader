@@ -14,6 +14,7 @@ import com.yoreader.app.data.FeedGroupCrossRef
 import com.yoreader.app.data.FeedUrl
 import com.yoreader.app.data.GroupWithFeeds
 import com.yoreader.app.data.Opml
+import com.yoreader.app.data.addFeed
 import com.yoreader.app.data.OpmlException
 import com.yoreader.app.data.OpmlFeed
 import com.yoreader.app.fetch.RefreshScheduler
@@ -126,17 +127,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
      */
     fun addFeed(url: String, groupIds: Set<Long>) {
         viewModelScope.launch {
-            val (id, isNew) = db.withTransaction {
-                var id = feedDao.insert(Feed(title = FeedUrl.defaultTitle(url), url = url))
-                val isNew = id != -1L
-                if (!isNew) {
-                    val key = FeedUrl.key(url)
-                    id = feedDao.getAll().firstOrNull { FeedUrl.key(it.url) == key }?.id
-                        ?: return@withTransaction -1L to false
-                }
-                groupIds.forEach { groupDao.addFeedToGroup(FeedGroupCrossRef(id, it)) }
-                id to isNew
-            }
+            val (id, isNew) = db.addFeed(url, groupIds) ?: return@launch
             // Fetch right away so the real title and first articles show up.
             if (isNew) RefreshScheduler.refreshFeed(getApplication(), id)
         }

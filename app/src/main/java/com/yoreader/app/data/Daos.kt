@@ -15,6 +15,9 @@ interface GroupDao {
     @Query("SELECT * FROM feed_groups ORDER BY position, name")
     fun observeGroupsWithFeeds(): Flow<List<GroupWithFeeds>>
 
+    @Query("SELECT * FROM feed_groups")
+    suspend fun getAll(): List<FeedGroup>
+
     /** Returns -1 if a group with the same name already exists. */
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertGroup(group: FeedGroup): Long
@@ -223,7 +226,7 @@ interface ArticleDao {
 
     /**
      * Changes whenever anything the sync file holds changes (articles, their states and
-     * cleaned text, feeds, groups), so a sync can tell cheaply that nothing did.
+     * cleaned text, feeds and their errors, groups), so a sync can tell cheaply that nothing did.
      */
     @Query(
         """
@@ -232,7 +235,7 @@ interface ArticleDao {
              || COALESCE(MAX(id), 0) || ',' || COALESCE(MAX(readChangedAt), 0) || ','
              || COALESCE(MAX(starredChangedAt), 0) || ',' || COALESCE(SUM(LENGTH(cleanedHtml)), 0)
            FROM articles)
-          || '|' || (SELECT COALESCE(group_concat(id || ':' || url || ':' || title, ';'), '') FROM feeds)
+          || '|' || (SELECT COALESCE(group_concat(id || ':' || url || ':' || title || ':' || COALESCE(lastError, ''), ';'), '') FROM feeds)
           || '|' || (SELECT COALESCE(group_concat(id || ':' || name || ':' || position, ';'), '') FROM feed_groups)
           || '|' || (SELECT COUNT(*) || ',' || COALESCE(SUM(feedId * 1000003 + groupId), 0) FROM feed_group_cross_ref)
         """

@@ -84,4 +84,45 @@ class SyncFileTest {
         assertTrue(!text.contains("savedAt"))
         assertTrue(!text.contains("siteUrl"))
     }
+
+    @Test
+    fun readsSourcesAddedOnTheLaptop() {
+        val text = """
+            {"writtenBy":"web","writtenAt":5,"format":"yoreader-sync","version":1,"articles":[],
+             "addFeeds":[
+               {"url":"https://new.example.net/feed","groups":["Tech",""],"at":42},
+               {"url":"","groups":[],"at":43},
+               {"url":"https://no-time.example.net/feed","groups":[]},
+               {"url":"example.com/rss","at":44}
+             ]}
+        """.trimIndent()
+        assertEquals(
+            listOf(
+                SyncFile.FeedRequest("https://new.example.net/feed", listOf("Tech"), 42L),
+                SyncFile.FeedRequest("example.com/rss", emptyList(), 44L),
+            ),
+            SyncFile.parse(text).addFeeds,
+        )
+        assertEquals(emptyList<SyncFile.FeedRequest>(), SyncFile.parse(sample).addFeeds)
+    }
+
+    @Test
+    fun writesTakenSourcesAndFeedErrors() {
+        val body = SyncFile.body(
+            groups = emptyList(),
+            feeds = listOf(SyncFile.FeedEntry("https://e.org/feed", "E", null, emptyList(), "HTTP 404")),
+            articles = emptyList(),
+            addedFeeds = listOf(SyncFile.FeedRequest("e.org/feed", listOf("ignored"), 42L)),
+        )
+        val text = SyncFile.write(body, now = 99L)
+        val root = org.json.JSONObject(text)
+        assertEquals("HTTP 404", root.getJSONArray("feeds").getJSONObject(0).getString("error"))
+        val added = root.getJSONArray("addedFeeds")
+        assertEquals(1, added.length())
+        assertEquals("e.org/feed", added.getJSONObject(0).getString("url"))
+        assertEquals(42L, added.getJSONObject(0).getLong("at"))
+        assertTrue(!added.getJSONObject(0).has("groups"))
+        val none = SyncFile.write(SyncFile.body(emptyList(), emptyList(), emptyList()), now = 1L)
+        assertTrue(!none.contains("addedFeeds"))
+    }
 }

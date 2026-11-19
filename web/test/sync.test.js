@@ -86,3 +86,49 @@ test('changes for articles the phone dropped, or very old ones, are forgotten', 
   pending = S.change(pending, byGuid(file.articles, 'a1'), 'read', true, NOW - 40 * 24 * 3600 * 1000);
   assert.deepEqual(S.prune(pending, file, NOW), {});
 });
+
+test('addresses are cleaned up like in the app', () => {
+  assert.equal(S.normalizeUrl(' example.org/feed.xml '), 'https://example.org/feed.xml');
+  assert.equal(S.normalizeUrl('http://example.org/rss'), 'http://example.org/rss');
+  assert.equal(S.normalizeUrl('ftp://example.org/rss'), null);
+  assert.equal(S.normalizeUrl('localhost/rss'), null);
+  assert.equal(S.normalizeUrl('two words.org'), null);
+  assert.equal(S.normalizeUrl(''), null);
+  assert.equal(S.feedKey('https://Example.org/Feed/'), 'https://example.org/feed');
+});
+
+test('a source added on the laptop is asked for until the phone has it', () => {
+  const file = sample();
+  const pendingFeeds = S.addFeed([], 'https://new.example.net/feed', ['Tech'], NOW);
+  assert.equal(S.needsWrite(file, {}, pendingFeeds), true);
+  const written = S.applyPending(file, {}, NOW + 1, pendingFeeds);
+  assert.deepEqual(written.addFeeds, [{ url: 'https://new.example.net/feed', groups: ['Tech'], at: NOW }]);
+  // Read back: already asked, nothing more to write; still pending.
+  assert.equal(S.needsWrite(written, {}, pendingFeeds), false);
+  assert.equal(S.pruneFeeds(pendingFeeds, written, NOW + 2).length, 1);
+  // The phone's next write, which crossed ours, lacks the request: ask again.
+  assert.equal(S.needsWrite(file, {}, pendingFeeds), true);
+});
+
+test('the phone confirms a source by listing the request or the source', () => {
+  const pendingFeeds = S.addFeed([], 'https://new.example.net/feed', ['Tech'], NOW);
+  const acked = Object.assign(sample(), { addedFeeds: [{ url: 'https://new.example.net/feed', at: NOW }] });
+  assert.deepEqual(S.pruneFeeds(pendingFeeds, acked, NOW + 5), []);
+  const listed = sample();
+  listed.feeds.push({ url: 'https://NEW.example.net/feed/', title: 'New', groups: ['Tech'] });
+  assert.deepEqual(S.pruneFeeds(pendingFeeds, listed, NOW + 5), []);
+  const otherGroup = sample();
+  otherGroup.feeds.push({ url: 'https://new.example.net/feed', title: 'New', groups: [] });
+  assert.equal(S.pruneFeeds(pendingFeeds, otherGroup, NOW + 5).length, 1, 'group not added yet');
+  assert.deepEqual(S.pruneFeeds(pendingFeeds, sample(), NOW + 31 * 24 * 3600 * 1000), [], 'too old');
+});
+
+test("another laptop's request in the file is kept when writing", () => {
+  const file = sample();
+  file.writtenBy = 'web';
+  file.addFeeds = [{ url: 'https://other.example.net/rss', groups: [], at: NOW - 5 }];
+  const mine = S.addFeed([], 'https://new.example.net/feed', [], NOW);
+  const written = S.applyPending(file, {}, NOW + 1, mine);
+  assert.deepEqual(written.addFeeds.map((r) => r.url), ['https://new.example.net/feed', 'https://other.example.net/rss']);
+  assert.equal(S.applyPending(sample(), {}, NOW + 1, []).addFeeds, undefined);
+});

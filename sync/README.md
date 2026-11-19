@@ -38,11 +38,18 @@ server is involved: each side reads the file, takes the newer changes and writes
   since sync existed, so any dated change wins over it.
 - The phone owns the content: feeds, groups and which articles are in the file
   (unread, saved, and read in the last 7 days; text only for unread and saved).
-- The laptop only changes `read`/`readAt`/`saved`/`savedAt` (and sets `writtenBy` to
-  `"web"`). It keeps its own changes in the browser until a write by the phone
+- The laptop only changes `read`/`readAt`/`saved`/`savedAt` and `addFeeds` (and sets
+  `writtenBy` to `"web"`). It keeps its own changes in the browser until a write by the phone
   includes them, so a phone write that crossed with the laptop's loses nothing.
 - `writtenBy` and `writtenAt` come first in the file: the phone reads only the first
   200 bytes to see whether the file is still its own last write.
+- Sources added on the laptop: the laptop writes `"addFeeds": [{ "url", "groups",
+  "at" }]` (`url` as typed, cleaned up like the app does; `groups` by name, missing
+  ones are created; `at` identifies the request). The phone adds them, then lists
+  the requests it took for 30 days as `"addedFeeds": [{ "url", "at" }]`. The laptop
+  asks again in each write until it sees its request there (or the source in those
+  groups), since the source's URL may change (a website address becomes its feed's).
+- A feed may have `"error"`: why its last refresh failed.
 - A reader must refuse a file with a higher `version` than it knows.
 
 `sample.json` is read by the tests on both sides (`app/src/test/.../sync/SyncFileTest.kt`

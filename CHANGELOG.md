@@ -4,7 +4,7 @@ Versions are `major.minor.patch`, set in `app/build.gradle.kts` (`appVersionName
 The build number (Android `versionCode`) is the number of git commits, and every
 build records its commit id; both show at the bottom of the side menu.
 
-## Unreleased
+## 0.8.0 - 2026-11-19
 
 - Fixed: cleaning up an article could close the app when the site refused the
   download (e.g. sites behind Cloudflare's browser check). Such sites now get a

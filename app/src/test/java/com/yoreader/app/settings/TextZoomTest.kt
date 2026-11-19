@@ -12,8 +12,9 @@ class TextZoomTest {
 
     @Test
     fun roundsToNearestStep() {
-        assertEquals(110, TextZoom.snap(107))
-        assertEquals(100, TextZoom.snap(104))
+        assertEquals(105, TextZoom.snap(107))
+        assertEquals(110, TextZoom.snap(108))
+        assertEquals(100, TextZoom.snap(102))
     }
 
     @Test
@@ -24,7 +25,7 @@ class TextZoomTest {
 
     @Test
     fun sliderStepsMatchRange() {
-        // 80, 90, ... 150: 8 sizes, 6 stops between the two ends.
-        assertEquals(6, TextZoom.STEPS_BETWEEN)
+        // 80, 85, ... 150: 15 sizes, 13 stops between the two ends.
+        assertEquals(13, TextZoom.STEPS_BETWEEN)
     }
 }

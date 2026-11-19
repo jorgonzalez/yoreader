@@ -167,7 +167,7 @@ fun OptionsScreen(
                 ArticleWebView(html = sample, baseUrl = REPO_URL, onLinkClick = {})
             }
             Text(
-                "Used in the reader and in cleaned pages.",
+                "Used in article lists, the reader and cleaned pages.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp),

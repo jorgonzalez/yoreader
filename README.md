@@ -140,7 +140,7 @@ Everything below works and is in version 0.7.0 unless marked otherwise.
     about hourly when online and the battery isn't low; a newly added source is
     fetched immediately; manual refresh from the top bar.
 - **Options** (side menu, below Manage sources): article text size (80% to
-  150%, with a live preview; body text grows fully, the headline half as much,
+  150% in 5% steps, for article lists and the reader, with a live preview; body text grows fully, the headline half as much,
   and changing it doesn't reload the page), read-aloud languages (those turned on
   are listed; the others with a voice on the phone are under "More languages", a
   drop-down), the laptop sync file, when read articles are removed

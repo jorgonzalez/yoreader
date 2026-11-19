@@ -27,6 +27,7 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -38,9 +39,14 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yoreader.app.YoReaderApp
 import com.yoreader.app.data.ArticleListRow
 import com.yoreader.app.fetch.Html
 import kotlin.math.abs
@@ -152,8 +158,25 @@ private fun SwipeBackground(icon: ImageVector, label: String, color: Color, alig
     }
 }
 
+/**
+ * An article in a list. Its text follows the article text size chosen in Options
+ * (on top of Android's own font size), like the reader.
+ */
 @Composable
 internal fun ArticleRow(item: ArticleListItem, onClick: () -> Unit) {
+    val context = LocalContext.current
+    val settings = remember(context) { (context.applicationContext as YoReaderApp).settings }
+    val zoom by settings.textZoom.collectAsStateWithLifecycle()
+    val density = LocalDensity.current
+    CompositionLocalProvider(
+        LocalDensity provides Density(density.density, density.fontScale * zoom / 100f),
+    ) {
+        ArticleRowContent(item, onClick)
+    }
+}
+
+@Composable
+private fun ArticleRowContent(item: ArticleListItem, onClick: () -> Unit) {
     val row = item.row
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     Column(

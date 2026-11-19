@@ -132,3 +132,33 @@ test("another laptop's request in the file is kept when writing", () => {
   assert.deepEqual(written.addFeeds.map((r) => r.url), ['https://new.example.net/feed', 'https://other.example.net/rss']);
   assert.equal(S.applyPending(sample(), {}, NOW + 1, []).addFeeds, undefined);
 });
+
+test('a source removed on the laptop is asked for until the phone drops it', () => {
+  const file = sample();
+  const url = 'https://tech.example.com/rss';
+  const pendingFeeds = S.removeFeed([], url, NOW);
+  assert.equal(S.needsWrite(file, {}, pendingFeeds), true);
+  const written = S.applyPending(file, {}, NOW + 1, pendingFeeds);
+  assert.deepEqual(written.removeFeeds, [{ url, at: NOW }]);
+  assert.equal(written.addFeeds, undefined);
+  assert.equal(S.needsWrite(written, {}, pendingFeeds), false);
+  assert.equal(S.pruneFeeds(pendingFeeds, written, NOW + 2).length, 1, 'still there');
+  // Done: the phone says so, or the source is gone.
+  const acked = Object.assign(sample(), { removedFeeds: [{ url, at: NOW }] });
+  assert.deepEqual(S.pruneFeeds(pendingFeeds, acked, NOW + 5), []);
+  const gone = sample();
+  gone.feeds = gone.feeds.filter((f) => f.url !== url);
+  assert.deepEqual(S.pruneFeeds(pendingFeeds, gone, NOW + 5), []);
+});
+
+test('adding and removing the same source keeps only the last request', () => {
+  const url = 'https://new.example.net/feed';
+  let p = S.addFeed([], url, ['Tech'], NOW);
+  p = S.removeFeed(p, 'https://NEW.example.net/feed/', NOW + 1);
+  assert.equal(p.length, 1);
+  assert.equal(S.requestFor(p, url).remove, true);
+  p = S.addFeed(p, url, [], NOW + 2);
+  assert.equal(p.length, 1);
+  assert.equal(S.requestFor(p, url).remove, undefined);
+  assert.equal(S.requestFor(p, 'https://other.example.net/'), null);
+});

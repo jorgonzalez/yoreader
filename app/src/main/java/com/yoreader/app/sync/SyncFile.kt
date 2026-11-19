@@ -26,7 +26,8 @@ object SyncFile {
     /**
      * A source added on the laptop ("addFeeds" in the file), identified by [url] as
      * typed there and [at], when it was added. The phone lists the ones it took in
-     * "addedFeeds" (without groups).
+     * "addedFeeds" (without groups). Removals ("removeFeeds" / "removedFeeds") have
+     * no groups.
      */
     data class FeedRequest(val url: String, val groups: List<String>, val at: Long)
 
@@ -60,6 +61,7 @@ object SyncFile {
         val writtenAt: Long?,
         val statuses: List<Status>,
         val addFeeds: List<FeedRequest> = emptyList(),
+        val removeFeeds: List<FeedRequest> = emptyList(),
     )
 
     class FormatException(message: String) : Exception(message)
@@ -70,6 +72,7 @@ object SyncFile {
         feeds: List<FeedEntry>,
         articles: List<ArticleEntry>,
         addedFeeds: List<FeedRequest> = emptyList(),
+        removedFeeds: List<FeedRequest> = emptyList(),
     ): JSONObject =
         JSONObject()
             .put("format", FORMAT)
@@ -112,15 +115,13 @@ object SyncFile {
                 },
             )
             .apply {
-                if (addedFeeds.isNotEmpty()) {
-                    put(
-                        "addedFeeds",
-                        JSONArray().apply {
-                            addedFeeds.forEach { put(JSONObject().put("url", it.url).put("at", it.at)) }
-                        },
-                    )
-                }
+                if (addedFeeds.isNotEmpty()) put("addedFeeds", requests(addedFeeds))
+                if (removedFeeds.isNotEmpty()) put("removedFeeds", requests(removedFeeds))
             }
+
+    /** Requests as written back by the phone: url and time, without groups. */
+    private fun requests(list: List<FeedRequest>): JSONArray =
+        JSONArray().apply { list.forEach { put(JSONObject().put("url", it.url).put("at", it.at)) } }
 
     /**
      * The whole file as written by the phone at [now]. "writtenBy"/"writtenAt" come
@@ -163,20 +164,24 @@ object SyncFile {
                 savedAt = a.optLongOrNull("savedAt"),
             )
         }
-        val requests = root.optJSONArray("addFeeds") ?: JSONArray()
-        val addFeeds = (0 until requests.length()).mapNotNull { i ->
-            val r = requests.optJSONObject(i) ?: return@mapNotNull null
+        return Contents(
+            writtenBy = root.optString("writtenBy").takeIf { it.isNotEmpty() },
+            writtenAt = root.optLongOrNull("writtenAt"),
+            statuses = statuses,
+            addFeeds = feedRequests(root.optJSONArray("addFeeds")),
+            removeFeeds = feedRequests(root.optJSONArray("removeFeeds")),
+        )
+    }
+
+    private fun feedRequests(list: JSONArray?): List<FeedRequest> {
+        if (list == null) return emptyList()
+        return (0 until list.length()).mapNotNull { i ->
+            val r = list.optJSONObject(i) ?: return@mapNotNull null
             val url = r.optString("url").takeIf { it.isNotBlank() } ?: return@mapNotNull null
             val at = r.optLongOrNull("at") ?: return@mapNotNull null
             val groups = r.optJSONArray("groups") ?: JSONArray()
             FeedRequest(url, (0 until groups.length()).mapNotNull { groups.optString(it).takeIf(String::isNotBlank) }, at)
         }
-        return Contents(
-            writtenBy = root.optString("writtenBy").takeIf { it.isNotEmpty() },
-            writtenAt = root.optLongOrNull("writtenAt"),
-            statuses = statuses,
-            addFeeds = addFeeds,
-        )
     }
 
     private fun JSONObject.optLongOrNull(key: String): Long? =

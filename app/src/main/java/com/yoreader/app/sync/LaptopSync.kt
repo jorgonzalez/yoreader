@@ -9,6 +9,7 @@ import com.yoreader.app.data.AppDatabase
 import com.yoreader.app.data.FeedUrl
 import com.yoreader.app.data.addFeed
 import com.yoreader.app.data.groupIds
+import com.yoreader.app.data.removeFeed
 import com.yoreader.app.fetch.RefreshScheduler
 import com.yoreader.app.fetch.Html
 import kotlinx.coroutines.Dispatchers
@@ -27,7 +28,7 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Keeps a sync file (chosen in Options, e.g. in Google Drive) up to date for the
- * laptop page, and takes the read/saved changes and new sources made there. Runs after background
+ * laptop page, and takes the read/saved changes and sources added or removed there. Runs after background
  * refreshes and when the app is opened or left. The file is reached through Android's
  * file picker permission, so it works with any storage app that offers files there.
  */
@@ -74,7 +75,7 @@ class LaptopSync(
             .putString(KEY_URI, uri.toString())
             .putString(KEY_NAME, name)
             .remove(KEY_LAST_SYNC).remove(KEY_ERROR).remove(KEY_FINGERPRINT).remove(KEY_WRITTEN_AT)
-            .remove(KEY_ADDED)
+            .remove(KEY_ADDED).remove(KEY_REMOVED)
             .apply()
         _state.value = State(fileUri = uri, fileName = name)
         sync()
@@ -133,12 +134,15 @@ class LaptopSync(
                 }
             }
             addFeeds(contents.addFeeds)
+            removeFeeds(contents.removeFeeds)
         }
 
         // 2. The phone's view, written unless nothing changed since the last write. The
         //    day counts too: read articles leave the file after READ_DAYS.
         val time = now()
-        val added = addedFeeds().filter { time - it.at <= TimeUnit.DAYS.toMillis(ADDED_DAYS) }
+        val keep = TimeUnit.DAYS.toMillis(DONE_DAYS)
+        val added = done(KEY_ADDED).filter { time - it.at <= keep }
+        val removed = done(KEY_REMOVED).filter { time - it.at <= keep }
         val fingerprint = dao.syncFingerprint() + "|" + TimeUnit.MILLISECONDS.toDays(time)
         if (ownLastWrite && fingerprint == prefs.getString(KEY_FINGERPRINT, null)) return
 
@@ -161,6 +165,7 @@ class LaptopSync(
                 )
             },
             addedFeeds = added,
+            removedFeeds = removed,
         )
         val bytes = SyncFile.write(body, time).toByteArray(Charsets.UTF_8)
         // "wt" replaces the whole file; a few storage apps only accept "w".
@@ -176,6 +181,7 @@ class LaptopSync(
             .putString(KEY_FINGERPRINT, fingerprint)
             .putLong(KEY_WRITTEN_AT, time)
             .putString(KEY_ADDED, encode(added))
+            .putString(KEY_REMOVED, encode(removed))
             .apply()
     }
 
@@ -184,7 +190,7 @@ class LaptopSync(
      * the file can tell the laptop (which keeps asking until it sees them there).
      */
     private suspend fun addFeeds(requests: List<SyncFile.FeedRequest>) {
-        val done = addedFeeds()
+        val done = done(KEY_ADDED)
         val fresh = requests.filter { r -> done.none { it.url == r.url && it.at == r.at } }
         if (fresh.isEmpty()) return
         for (r in fresh) {
@@ -195,9 +201,18 @@ class LaptopSync(
         prefs.edit().putString(KEY_ADDED, encode(done + fresh)).apply()
     }
 
-    /** Sources taken from the laptop (url and time, without groups). */
-    private fun addedFeeds(): List<SyncFile.FeedRequest> = try {
-        val list = JSONArray(prefs.getString(KEY_ADDED, null) ?: "[]")
+    /** Removes the sources removed on the laptop, remembering the requests as for adding. */
+    private suspend fun removeFeeds(requests: List<SyncFile.FeedRequest>) {
+        val done = done(KEY_REMOVED)
+        val fresh = requests.filter { r -> done.none { it.url == r.url && it.at == r.at } }
+        if (fresh.isEmpty()) return
+        for (r in fresh) db.removeFeed(r.url)
+        prefs.edit().putString(KEY_REMOVED, encode(done + fresh)).apply()
+    }
+
+    /** Requests taken from the laptop under [key] (url and time, without groups). */
+    private fun done(key: String): List<SyncFile.FeedRequest> = try {
+        val list = JSONArray(prefs.getString(key, null) ?: "[]")
         (0 until list.length()).map { i ->
             val o = list.getJSONObject(i)
             SyncFile.FeedRequest(o.getString("url"), emptyList(), o.getLong("at"))
@@ -253,13 +268,14 @@ class LaptopSync(
         const val KEY_FINGERPRINT = "fingerprint"
         const val KEY_WRITTEN_AT = "written_at"
         const val KEY_ADDED = "added_feeds"
+        const val KEY_REMOVED = "removed_feeds"
 
         /** Read articles stay in the file this long after being read, so the laptop sees it. */
         const val READ_DAYS = 7L
         const val EXCERPT_CHARS = 300
         const val PEEK_BYTES = 200
 
-        /** Sources taken from the laptop stay listed in the file this long (as the laptop's wait). */
-        const val ADDED_DAYS = 30L
+        /** Sources added/removed from the laptop stay listed in the file this long (as the laptop's wait). */
+        const val DONE_DAYS = 30L
     }
 }

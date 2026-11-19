@@ -38,7 +38,8 @@ server is involved: each side reads the file, takes the newer changes and writes
   since sync existed, so any dated change wins over it.
 - The phone owns the content: feeds, groups and which articles are in the file
   (unread, saved, and read in the last 7 days; text only for unread and saved).
-- The laptop only changes `read`/`readAt`/`saved`/`savedAt` and `addFeeds` (and sets
+- The laptop only changes `read`/`readAt`/`saved`/`savedAt`, `addFeeds` and
+  `removeFeeds` (and sets
   `writtenBy` to `"web"`). It keeps its own changes in the browser until a write by the phone
   includes them, so a phone write that crossed with the laptop's loses nothing.
 - `writtenBy` and `writtenAt` come first in the file: the phone reads only the first
@@ -49,6 +50,10 @@ server is involved: each side reads the file, takes the newer changes and writes
   the requests it took for 30 days as `"addedFeeds": [{ "url", "at" }]`. The laptop
   asks again in each write until it sees its request there (or the source in those
   groups), since the source's URL may change (a website address becomes its feed's).
+- Sources removed on the laptop work the same way: `"removeFeeds": [{ "url", "at" }]`
+  (the source's `url` from the file); the phone removes the source and its articles
+  and lists the requests as `"removedFeeds"` for 30 days. The laptop stops asking
+  when it sees its request there or the source is gone.
 - A feed may have `"error"`: why its last refresh failed.
 - A reader must refuse a file with a higher `version` than it knows.
 

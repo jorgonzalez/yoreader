@@ -86,7 +86,7 @@ class SyncFileTest {
     }
 
     @Test
-    fun readsSourcesAddedOnTheLaptop() {
+    fun readsSourcesAddedAndRemovedOnTheLaptop() {
         val text = """
             {"writtenBy":"web","writtenAt":5,"format":"yoreader-sync","version":1,"articles":[],
              "addFeeds":[
@@ -94,7 +94,8 @@ class SyncFileTest {
                {"url":"","groups":[],"at":43},
                {"url":"https://no-time.example.net/feed","groups":[]},
                {"url":"example.com/rss","at":44}
-             ]}
+             ],
+             "removeFeeds":[{"url":"https://old.example.net/rss","at":45},{"at":46}]}
         """.trimIndent()
         assertEquals(
             listOf(
@@ -103,16 +104,22 @@ class SyncFileTest {
             ),
             SyncFile.parse(text).addFeeds,
         )
+        assertEquals(
+            listOf(SyncFile.FeedRequest("https://old.example.net/rss", emptyList(), 45L)),
+            SyncFile.parse(text).removeFeeds,
+        )
         assertEquals(emptyList<SyncFile.FeedRequest>(), SyncFile.parse(sample).addFeeds)
+        assertEquals(emptyList<SyncFile.FeedRequest>(), SyncFile.parse(sample).removeFeeds)
     }
 
     @Test
-    fun writesTakenSourcesAndFeedErrors() {
+    fun writesTakenRequestsAndFeedErrors() {
         val body = SyncFile.body(
             groups = emptyList(),
             feeds = listOf(SyncFile.FeedEntry("https://e.org/feed", "E", null, emptyList(), "HTTP 404")),
             articles = emptyList(),
             addedFeeds = listOf(SyncFile.FeedRequest("e.org/feed", listOf("ignored"), 42L)),
+            removedFeeds = listOf(SyncFile.FeedRequest("https://old.e.org/rss", emptyList(), 43L)),
         )
         val text = SyncFile.write(body, now = 99L)
         val root = org.json.JSONObject(text)
@@ -122,7 +129,11 @@ class SyncFileTest {
         assertEquals("e.org/feed", added.getJSONObject(0).getString("url"))
         assertEquals(42L, added.getJSONObject(0).getLong("at"))
         assertTrue(!added.getJSONObject(0).has("groups"))
+        val removed = root.getJSONArray("removedFeeds")
+        assertEquals("https://old.e.org/rss", removed.getJSONObject(0).getString("url"))
+        assertEquals(43L, removed.getJSONObject(0).getLong("at"))
         val none = SyncFile.write(SyncFile.body(emptyList(), emptyList(), emptyList()), now = 1L)
         assertTrue(!none.contains("addedFeeds"))
+        assertTrue(!none.contains("removedFeeds"))
     }
 }

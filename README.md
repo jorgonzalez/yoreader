@@ -162,7 +162,8 @@ Everything below works and is in version 0.7.0 unless marked otherwise.
 - **Laptop page** (`web/`, plain HTML/CSS/JS, no build step): unread, saved,
   recently read, groups and sources with unread counts; the article in a sandboxed
   frame styled like the reader; mark read/unread and save; keys j/k, m, s, o; add a
-  source (feed or website address, optional groups), which the phone adds. Format
+  source (feed or website address, optional groups) or remove one, which the phone
+  then does. Format
   of the file shared with the phone: [`sync/README.md`](sync/README.md).
 - **Unit tests** (66): feed parsing, dates, HTML helpers and feed discovery, search
   folding, OPML, clean up, speech text and speed, language detection in all 14
@@ -170,7 +171,7 @@ Everything below works and is in version 0.7.0 unless marked otherwise.
   (paragraph numbering, script stripping, text size), the Options values
   (text sizes, clean-up period) and the sync file. Run with
   `./gradlew :app:testDebugUnitTest`. The laptop page's sync logic has its own
-  tests (11), on the same sample file: `node --test web/test/*.test.js`.
+  tests (13), on the same sample file: `node --test web/test/*.test.js`.
 
 ## Laptop page
 
@@ -197,7 +198,9 @@ articles are in the file for 7 days without their text (use "Open original").
 
 **+ Add source** (under Sources) takes a feed or website address and, optionally,
 groups. The phone adds it, like a source added on the phone, the next time it reads
-the file; until then it shows as "waiting". A source whose last refresh failed has a
+the file; until then it shows as "waiting". To remove a source, open it and press
+**Remove source**: the phone removes it with its articles at its next sync (it's
+crossed out until then). A source whose last refresh failed has a
 ⚠ next to it (hover for the reason).
 
 ## Open the project

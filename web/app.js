@@ -356,12 +356,16 @@
         box.appendChild(navButton(g, n, { kind: 'group', id: g }));
       });
     }
-    var waiting = state.pendingFeeds.filter(function (r) { return !S.findFeed(state.file, r.url); });
+    var waiting = state.pendingFeeds.filter(function (r) { return !r.remove && !S.findFeed(state.file, r.url); });
     if (state.file.feeds.length || waiting.length) {
       box.appendChild(heading('Sources'));
       state.file.feeds.forEach(function (f) {
         var b = navButton(f.title, unreadByFeed[f.url] || 0, { kind: 'feed', id: f.url });
-        if (f.error) {
+        if ((S.requestFor(state.pendingFeeds, f.url) || {}).remove) {
+          b.classList.add('removing');
+          b.title = 'Waiting for the phone to remove it';
+          b.lastChild.textContent = 'removing';
+        } else if (f.error) {
           b.classList.add('failing');
           b.title = f.error;
         }
@@ -384,6 +388,13 @@
     $('show-read-label').hidden = !filtered;
     $('show-read').checked = state.showRead;
     var feeds = feedsByUrl();
+    var source = state.view.kind === 'feed' ? feeds[state.view.id] : null;
+    $('remove-source').hidden = !source;
+    if (source) {
+      var removing = (S.requestFor(state.pendingFeeds, source.url) || {}).remove;
+      $('remove-source').disabled = !!removing;
+      $('remove-source').textContent = removing ? 'Removal waiting for the phone' : 'Remove source';
+    }
     var ol = $('list');
     ol.textContent = '';
     var items = listed();
@@ -564,6 +575,16 @@
     $('add-source-message').hidden = false;
   }
 
+  $('remove-source').onclick = function () {
+    var f = state.view.kind === 'feed' && feedsByUrl()[state.view.id];
+    if (!f) return;
+    if (!confirm('Remove “' + f.title + '”? Its articles go too, also on the phone (when it next syncs).')) return;
+    state.pendingFeeds = S.removeFeed(state.pendingFeeds, f.url, Date.now());
+    if (state.handle) savePendingFeeds(); // not in the demo
+    scheduleWrite();
+    render();
+  };
+
   $('add-source-open').onclick = openAddSource;
   $('add-source-cancel').onclick = closeAddSource;
   $('add-source-form').onkeydown = function (e) { if (e.key === 'Escape') closeAddSource(); };
@@ -575,6 +596,9 @@
       return i.checked;
     }).map(function (i) { return i.value; });
     var existing = S.findFeed(state.file, url);
+    if (existing && (S.requestFor(state.pendingFeeds, existing.url) || {}).remove) {
+      return addSourceMessage('“' + existing.title + '” is waiting for the phone to remove it; add it again after that.');
+    }
     if (existing && groups.every(function (g) { return (existing.groups || []).indexOf(g) >= 0; })) {
       return addSourceMessage('“' + existing.title + '” is already one of your sources.');
     }

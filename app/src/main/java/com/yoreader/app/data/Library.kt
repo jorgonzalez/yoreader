@@ -21,6 +21,14 @@ suspend fun AppDatabase.addFeed(url: String, groupIds: Collection<Long>): Pair<L
         id to isNew
     }
 
+/** Removes the source at [url] (any case, trailing slash or not) with its articles; false if not there. */
+suspend fun AppDatabase.removeFeed(url: String): Boolean = withTransaction {
+    val key = FeedUrl.key(url)
+    val feed = feedDao().getAll().firstOrNull { FeedUrl.key(it.url) == key } ?: return@withTransaction false
+    feedDao().delete(feed)
+    true
+}
+
 /** Ids of the groups called [names], creating the missing ones at the end of the list. */
 suspend fun AppDatabase.groupIds(names: Collection<String>): List<Long> = withTransaction {
     val clean = names.map { it.trim() }.filter { it.isNotEmpty() }.distinct()

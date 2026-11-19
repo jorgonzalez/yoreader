@@ -11,9 +11,9 @@ build records its commit id; both show at the bottom of the side menu.
   too, instead of opening the link.
 - The article text size from Options now also applies to article lists (titles,
   sources and previews), not only to the reader.
-- Add sources from the laptop page: type a feed or website address, choose groups,
-  and the phone adds it the next time it syncs. Sources that fail to refresh show
-  a ⚠ on the laptop page.
+- Add and remove sources from the laptop page: type a feed or website address and
+  choose groups, or open a source and press Remove source; the phone does it the
+  next time it syncs. Sources that fail to refresh show a ⚠ on the laptop page.
 - Text size changes in 5% steps instead of 10%.
 
 ## 0.7.0 - 2026-11-18

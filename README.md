@@ -83,9 +83,9 @@ Everything below works and is in version 0.9.0 unless marked otherwise.
 - **Reader**: the article in a WebView styled for the dark theme (JavaScript off);
   opening marks it read, and a headline repeated at the top of the content is
   dropped. Top bar: read aloud, clean up, save for later, share (title and link, to any
-  app: WhatsApp, Signal, email...); menu: mark unread, open original page (in
-  the app), open in browser, switch between cleaned and feed version, clean
-  up again. **Double tap** the article to clean it up, and again to switch between
+  app: WhatsApp, Signal, email...), mark unread (and read again), open original
+  page (in the app), open in browser; once cleaned, a menu adds switch between
+  cleaned and feed version, and clean up again. **Double tap** the article to clean it up, and again to switch between
   the cleaned and the feed's version (a link tap waits a moment to tell the two apart).
 - **Links open in the app** (`ui/reader/WebPageScreen`): "Open original page" and links in
   articles open an in-app page (a small browser: JavaScript on, links followed,

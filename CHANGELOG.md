@@ -10,6 +10,11 @@ build records its commit id; both show at the bottom of the side menu.
   the list at once: when you come back it's still there, shown as read, and it
   leaves after 2 seconds, like a swiped one.
 
+- Reader: Mark as unread, Open original page and Open in browser are now buttons in
+  the top bar instead of in the ⋮ menu. Mark as unread switches back to read on a
+  second tap. The ⋮ menu only shows up for cleaned-up articles (switch versions,
+  clean up again).
+
 ## 0.9.0 - 2026-11-20
 
 - Laptop page: **Mark all read** for Unread, a group or a source (button at the top

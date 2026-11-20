@@ -6,6 +6,9 @@ build records its commit id; both show at the bottom of the side menu.
 
 ## Unreleased
 
+- Clean up in the reader now also works on sites that refuse the app's download
+  ("HTTP 403" or Cloudflare's browser check): the page is loaded in an invisible
+  browser view and cleaned from there. This takes a few seconds longer.
 - Clean up on a page opened from a link now uses the page as shown, instead of
   downloading it again. Sites that refuse app downloads ("HTTP 403", e.g.
   elEconomista) can now be cleaned up and read aloud from there.

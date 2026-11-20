@@ -20,7 +20,8 @@ sealed interface CleanResult {
      * lines; [title] is the page's headline when Readability found one.
      */
     data class Success(val html: String, val text: String, val title: String? = null) : CleanResult
-    data class Failure(val message: String) : CleanResult
+    /** [blocked]: the site refused our download but may let a browser in. */
+    data class Failure(val message: String, val blocked: Boolean = false) : CleanResult
 }
 
 /**
@@ -49,14 +50,16 @@ class ArticleCleaner(private val client: OkHttpClient) {
                 client.newCall(request).await().use { r ->
                     // Cloudflare's "Verifying your connection" page: only real browsers get past it.
                     if (r.header("cf-mitigated") == "challenge") {
-                        return@withContext Failed("This site only lets browsers in; use Open original page")
+                        return@withContext Failed("This site only lets browsers in; use Open original page", blocked = true)
                     }
-                    if (!r.isSuccessful) return@withContext Failed("The page couldn't be loaded (HTTP ${r.code})")
+                    if (!r.isSuccessful) {
+                        return@withContext Failed("The page couldn't be loaded (HTTP ${r.code})", blocked = r.code == 403)
+                    }
                     val source = r.body?.source() ?: return@withContext Failed("The page is too large")
                     if (source.request(MAX_BYTES + 1)) return@withContext Failed("The page is too large")
                     Loaded(r.request.url.toString(), source.readByteArray())
                 }
-            }.let { if (it is Failed) return CleanResult.Failure(it.message) else it as Loaded }
+            }.let { if (it is Failed) return CleanResult.Failure(it.message, it.blocked) else it as Loaded }
         } catch (e: UnknownHostException) {
             return CleanResult.Failure("Server not found (offline?)")
         } catch (e: InterruptedIOException) {
@@ -77,7 +80,7 @@ class ArticleCleaner(private val client: OkHttpClient) {
 
     private sealed interface Download
     private data class Loaded(val url: String, val bytes: ByteArray) : Download
-    private data class Failed(val message: String) : Download
+    private data class Failed(val message: String, val blocked: Boolean = false) : Download
 
     companion object {
         private const val MAX_BYTES = 8L * 1024 * 1024

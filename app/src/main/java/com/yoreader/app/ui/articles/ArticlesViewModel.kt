@@ -59,6 +59,23 @@ internal fun ArticleListRow.after(action: SwipeAction): ArticleListRow = when (a
     SwipeAction.SAVE -> copy(isStarred = !isStarred)
 }
 
+/**
+ * Puts the [opened] articles that the query no longer returns back at their place
+ * (same order as the queries: newest first, no date last), shown as read. Each row
+ * comes with whether it is such a held row.
+ */
+internal fun withOpened(
+    rows: List<ArticleListRow>,
+    opened: Map<Long, ArticleListRow>,
+): List<Pair<ArticleListRow, Boolean>> {
+    val ids = rows.mapTo(HashSet()) { it.id }
+    val held = opened.values.filter { it.id !in ids }
+    if (held.isEmpty()) return rows.map { it to false }
+    val order = compareByDescending<Pair<ArticleListRow, Boolean>, Long?>(nullsFirst()) { it.first.publishedAt }
+        .thenByDescending { it.first.id }
+    return (rows.map { it to false } + held.map { it.copy(isRead = true) to true }).sortedWith(order)
+}
+
 class ArticlesViewModel(
     application: Application,
     private val savedState: SavedStateHandle,
@@ -91,13 +108,22 @@ class ArticlesViewModel(
 
     private class Leaving(val result: SwipeResult, val job: Job)
 
+    /**
+     * Unread articles opened from this list, by id, as they were when opened. Opening an
+     * article marks it read, which would take it out of this list at once; instead it
+     * stays, shown as read, until [LEAVE_DELAY_MS] after you come back to the list.
+     */
+    private val opened = MutableStateFlow<Map<Long, ArticleListRow>>(emptyMap())
+
     /** Null until the first query result arrives, to tell loading from empty. */
     @OptIn(ExperimentalCoroutinesApi::class)
     val articles: StateFlow<List<ArticleListItem>?> =
         unreadOnly
             .flatMapLatest { query(it) }
+            .combine(opened) { rows, opened -> withOpened(rows, opened) }
             .combine(leaving) { rows, leaving ->
-                rows.map { row ->
+                rows.map { (row, held) ->
+                    if (held) return@map row.toListItem().copy(leaving = true)
                     val swiped = leaving[row.id]?.result
                     // Only while the database still has the row as it was when swiped.
                     if (swiped != null && swiped.row.isRead == row.isRead && swiped.row.isStarred == row.isStarred) {
@@ -147,6 +173,24 @@ class ArticlesViewModel(
             viewModelScope.launch { apply(row.after(action), action) }
         }
         return result
+    }
+
+    /** Call before opening article [id] from this list. */
+    fun onOpen(id: Long) {
+        val row = articles.value?.firstOrNull { it.row.id == id }?.row ?: return
+        if (!row.isRead && id !in opened.value && swipeRemovesRow(row, SwipeAction.READ)) {
+            opened.update { it + (id to row) }
+        }
+    }
+
+    /** Call when the list is on screen again: articles opened before then leave shortly. */
+    fun onShown() {
+        val ids = opened.value.keys
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            delay(LEAVE_DELAY_MS)
+            opened.update { it - ids }
+        }
     }
 
     /** Saves the one value [action] changes, from [row] (the row as it should end up). */

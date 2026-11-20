@@ -4,6 +4,12 @@ Versions are `major.minor.patch`, set in `app/build.gradle.kts` (`appVersionName
 The build number (Android `versionCode`) is the number of git commits, and every
 build records its commit id; both show at the bottom of the side menu.
 
+## Unreleased
+
+- An article you open from Latest or an unread-only list no longer vanishes from
+  the list at once: when you come back it's still there, shown as read, and it
+  leaves after 2 seconds, like a swiped one.
+
 ## 0.9.0 - 2026-11-20
 
 - Laptop page: **Mark all read** for Unread, a group or a source (button at the top

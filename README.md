@@ -69,7 +69,8 @@ Everything below works and is in version 0.9.0 unless marked otherwise.
   later" (a second right swipe un-saves). The card must move at least 20% of its
   width. It springs back showing its new state, and if it no longer belongs in the
   list it stays for 2 seconds, then fades out. Undo in the
-  snackbar puts it back.
+  snackbar puts it back. An article you open from such a list (it becomes read)
+  is still there, shown as read, when you come back, and leaves 2 seconds later.
 - **Saved for later**: saved articles (stored in `Article.isStarred`).
 - **Articles** (all, one group, or one source): newest first, unread only by
   default (an "All" chip shows read ones too), the number of listed articles in a

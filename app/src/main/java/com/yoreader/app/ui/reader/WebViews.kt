@@ -180,11 +180,17 @@ private class ReadingScript {
 /**
  * A real web page, like a small browser: JavaScript on, links followed inside the view,
  * system Back goes to the previous page. [onPageChanged] reports the current URL and title.
+ * [onDoubleTap], when set, is called on a double tap anywhere on the page.
  */
-@SuppressLint("SetJavaScriptEnabled")
+@SuppressLint("SetJavaScriptEnabled", "ClickableViewAccessibility")
 @Composable
-internal fun LiveWebView(url: String, onPageChanged: (url: String, title: String?) -> Unit) {
+internal fun LiveWebView(
+    url: String,
+    onPageChanged: (url: String, title: String?) -> Unit,
+    onDoubleTap: (() -> Unit)? = null,
+) {
     val pageChanged by rememberUpdatedState(onPageChanged)
+    val doubleTap by rememberUpdatedState(onDoubleTap)
     var webView by remember { mutableStateOf<WebView?>(null) }
     var canGoBack by remember { mutableStateOf(false) }
     var progress by remember { mutableIntStateOf(0) }
@@ -224,6 +230,17 @@ internal fun LiveWebView(url: String, onPageChanged: (url: String, title: String
                         override fun onReceivedTitle(view: WebView, title: String?) {
                             view.url?.let { pageChanged(it, title) }
                         }
+                    }
+                    val gestures = GestureDetector(ctx, object : GestureDetector.SimpleOnGestureListener() {
+                        override fun onDoubleTap(e: MotionEvent): Boolean {
+                            val action = doubleTap ?: return false
+                            action()
+                            return true
+                        }
+                    })
+                    setOnTouchListener { _, e ->
+                        gestures.onTouchEvent(e)
+                        false // the WebView still handles the touch
                     }
                     loadUrl(url)
                     webView = this

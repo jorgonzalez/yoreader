@@ -4,6 +4,12 @@ Versions are `major.minor.patch`, set in `app/build.gradle.kts` (`appVersionName
 The build number (Android `versionCode`) is the number of git commits, and every
 build records its commit id; both show at the bottom of the side menu.
 
+## Unreleased
+
+- Double tap also works on pages opened from a link (the original page or a link in
+  an article): it cleans the page up, and again switches between the cleaned and the
+  original page.
+
 ## 0.8.0 - 2026-11-19
 
 - Fixed: cleaning up an article could close the app when the site refused the

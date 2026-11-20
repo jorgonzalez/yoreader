@@ -90,6 +90,7 @@ Everything below works and is in version 0.8.0 unless marked otherwise.
   articles open an in-app page (a small browser: JavaScript on, links followed,
   Back goes back, plain http allowed). Its top bar has Read aloud (cleans the page
   first if needed), Clean up (toggles cleaned/original), Share and Open in browser.
+  Double tap the page does the same as Clean up.
   Cleaned pages opened this way are kept in memory only, not stored.
 - **Clean up** (`clean/ArticleCleaner`): downloads the article's page and keeps only
   the article with Readability4J + jsoup. Stored as `cleanedHtml` (shown in the

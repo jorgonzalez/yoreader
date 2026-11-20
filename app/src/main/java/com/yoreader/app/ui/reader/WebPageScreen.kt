@@ -38,7 +38,8 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * A link opened inside the app. Shows the live page; Clean up turns it into a readable
- * dark page, and Read aloud reads that (cleaning first if needed).
+ * dark page, and Read aloud reads that (cleaning first if needed). A double tap does the
+ * same as the Clean up button.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,6 +65,12 @@ fun WebPageScreen(
     val speechStatus = speech.status.takeIf { cleaned != null && speech.pageUrl == cleaned.url }
     // Only the cleaned view is what's read aloud, so only it highlights and follows.
     val follow = rememberFollowState(speech, readingHere = speechStatus != null && showingCleaned, pageKey = cleaned?.url)
+    // Same as the clean-up button: clean, or switch between the two views.
+    val doubleTap: (() -> Unit)? = when {
+        cleaning -> null
+        cleaned != null -> { { onSetShowCleaned(!showCleaned) } }
+        else -> onClean
+    }
 
     LaunchedEffect(messages) {
         messages.collect { snackbar.showSnackbar(it) }
@@ -146,6 +153,7 @@ fun WebPageScreen(
                     reading = follow.reading,
                     follow = follow.following,
                     onUserScroll = follow.stop,
+                    onDoubleTap = doubleTap,
                 )
                 if (follow.offerFollow) {
                     FollowButton(
@@ -158,7 +166,7 @@ fun WebPageScreen(
             } else {
                 // Recreated when coming back from the cleaned view, at the current page.
                 key(showingCleaned) {
-                    LiveWebView(url = url, onPageChanged = onPageChanged)
+                    LiveWebView(url = url, onPageChanged = onPageChanged, onDoubleTap = doubleTap)
                 }
             }
         }

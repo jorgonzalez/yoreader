@@ -34,7 +34,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yoreader.app.YoReaderApp
 import com.yoreader.app.ui.theme.Background
 import java.util.Locale
+import kotlin.coroutines.resume
 import kotlin.math.abs
+import kotlinx.coroutines.suspendCancellableCoroutine
+import org.json.JSONArray
 
 /** Where reading aloud is in the page shown: see [ArticleHtml.READ_FUNCTION]. */
 internal data class ReadingSpot(val paragraph: Int, val progress: Float)
@@ -177,16 +180,37 @@ private class ReadingScript {
     }
 }
 
+/** The page loaded in a [LiveWebView], read straight from the view (no new download). */
+class LivePage {
+    internal var view: WebView? = null
+
+    /** The page's current address and HTML, or null if no page is loaded. */
+    suspend fun snapshot(): LoadedPage? {
+        val v = view ?: return null
+        val url = v.url?.takeIf { it.startsWith("http") } ?: return null
+        val json = suspendCancellableCoroutine { cont ->
+            v.evaluateJavascript("document.documentElement.outerHTML") { cont.resume(it) }
+        }
+        // The result is a JSON value: a quoted string, or null.
+        val html = runCatching { JSONArray("[$json]").optString(0, "") }.getOrNull()
+        return html?.takeIf { it.isNotBlank() && it != "null" }?.let { LoadedPage(url, it) }
+    }
+}
+
+data class LoadedPage(val url: String, val html: String)
+
 /**
  * A real web page, like a small browser: JavaScript on, links followed inside the view,
  * system Back goes to the previous page. [onPageChanged] reports the current URL and title.
  * [onDoubleTap], when set, is called on a double tap anywhere on the page.
+ * [livePage] gives access to the loaded page (for cleaning it up).
  */
 @SuppressLint("SetJavaScriptEnabled", "ClickableViewAccessibility")
 @Composable
 internal fun LiveWebView(
     url: String,
     onPageChanged: (url: String, title: String?) -> Unit,
+    livePage: LivePage? = null,
     onDoubleTap: (() -> Unit)? = null,
 ) {
     val pageChanged by rememberUpdatedState(onPageChanged)
@@ -244,9 +268,11 @@ internal fun LiveWebView(
                     }
                     loadUrl(url)
                     webView = this
+                    livePage?.view = this
                 }
             },
             onRelease = {
+                if (livePage?.view === it) livePage.view = null
                 webView = null
                 it.destroy()
             },

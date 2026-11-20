@@ -47,6 +47,18 @@ class ArticleCleanerTest {
     }
 
     @Test
+    fun cleansAPageAlreadyLoadedAsText() {
+        // As read from the in-app browser: already text, so a charset in the page
+        // (here a wrong one) must not change it.
+        val loaded = page.replace("<head>", "<head><meta charset=\"iso-8859-1\">")
+        val result = ArticleCleaner.extract(loaded, "https://example.es/noticia")
+        assertTrue(result is CleanResult.Success)
+        result as CleanResult.Success
+        assertTrue("Párrafo número 1" in result.text)
+        assertFalse("Aceptar cookies" in result.text)
+    }
+
+    @Test
     fun teaserPagesAreRejected() {
         val result = ArticleCleaner.extract(
             "<html><body><p>Suscríbete para seguir leyendo.</p></body></html>".toByteArray(),

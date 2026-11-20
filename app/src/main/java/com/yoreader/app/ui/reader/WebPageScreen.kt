@@ -53,13 +53,15 @@ fun WebPageScreen(
     messages: Flow<String>,
     onBack: () -> Unit,
     onPageChanged: (url: String, title: String?) -> Unit,
-    onClean: () -> Unit,
+    /** Gets the page as loaded on screen, so it isn't downloaded again. */
+    onClean: (LivePage) -> Unit,
     onSetShowCleaned: (Boolean) -> Unit,
-    onReadAloud: () -> Unit,
+    onReadAloud: (LivePage) -> Unit,
     onOpenLink: (String) -> Unit,
 ) {
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
+    val livePage = remember { LivePage() }
     val host = Uri.parse(url).host?.removePrefix("www.") ?: url
     val showingCleaned = showCleaned && cleaned != null
     val speechStatus = speech.status.takeIf { cleaned != null && speech.pageUrl == cleaned.url }
@@ -69,7 +71,7 @@ fun WebPageScreen(
     val doubleTap: (() -> Unit)? = when {
         cleaning -> null
         cleaned != null -> { { onSetShowCleaned(!showCleaned) } }
-        else -> onClean
+        else -> { { onClean(livePage) } }
     }
 
     LaunchedEffect(messages) {
@@ -102,7 +104,7 @@ fun WebPageScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onReadAloud, enabled = !cleaning) {
+                    IconButton(onClick = { onReadAloud(livePage) }, enabled = !cleaning) {
                         val accent = MaterialTheme.colorScheme.primary
                         when (speechStatus) {
                             ArticleSpeaker.Status.SPEAKING, ArticleSpeaker.Status.PREPARING ->
@@ -118,7 +120,7 @@ fun WebPageScreen(
                             CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
                         }
                     } else {
-                        IconButton(onClick = { if (cleaned != null) onSetShowCleaned(!showCleaned) else onClean() }) {
+                        IconButton(onClick = { if (cleaned != null) onSetShowCleaned(!showCleaned) else onClean(livePage) }) {
                             Icon(
                                 Icons.Default.AutoFixHigh,
                                 contentDescription = when {
@@ -166,7 +168,7 @@ fun WebPageScreen(
             } else {
                 // Recreated when coming back from the cleaned view, at the current page.
                 key(showingCleaned) {
-                    LiveWebView(url = url, onPageChanged = onPageChanged, onDoubleTap = doubleTap)
+                    LiveWebView(url = url, onPageChanged = onPageChanged, livePage = livePage, onDoubleTap = doubleTap)
                 }
             }
         }

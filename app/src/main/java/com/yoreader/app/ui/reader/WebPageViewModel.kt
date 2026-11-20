@@ -62,13 +62,26 @@ class WebPageViewModel(
         showCleaned.value = value && cleaned.value != null
     }
 
-    /** Cleans the current page; with [thenRead], starts reading it when done. */
-    fun clean(thenRead: Boolean = false) {
+    /**
+     * Cleans the current page; with [thenRead], starts reading it when done. Uses the
+     * page as loaded in [livePage] when possible: some sites refuse a second download
+     * that doesn't come from a browser (HTTP 403).
+     */
+    fun clean(livePage: LivePage? = null, thenRead: Boolean = false) {
         if (cleaning.value) return
-        val target = url.value
         viewModelScope.launch {
             cleaning.value = true
-            when (val result = app.cleaner.clean(target)) {
+            val loaded = livePage?.snapshot()
+            val target = loaded?.url ?: url.value
+            val fromScreen = loaded?.let { app.cleaner.cleanLoaded(it.html, it.url) }
+            // Not found in the loaded page (e.g. not finished loading): try a download,
+            // but if that fails too, the loaded page's reason is the more useful one.
+            val result = if (fromScreen is CleanResult.Success) fromScreen else {
+                app.cleaner.clean(target).let {
+                    if (it is CleanResult.Failure && fromScreen != null) fromScreen else it
+                }
+            }
+            when (result) {
                 is CleanResult.Success -> {
                     val title = result.title ?: pageTitle.value ?: Uri.parse(target).host ?: target
                     val page = CleanedPage(
@@ -89,7 +102,7 @@ class WebPageViewModel(
     }
 
     /** Pause/resume this page, or start reading it (cleaning it first if needed). */
-    fun toggleReadAloud() {
+    fun toggleReadAloud(livePage: LivePage? = null) {
         val page = cleaned.value
         val s = speaker.state.value
         if (page != null && s.pageUrl == page.url) {
@@ -99,7 +112,7 @@ class WebPageViewModel(
                 ArticleSpeaker.Status.IDLE -> Unit
             }
         }
-        if (page == null) clean(thenRead = true) else {
+        if (page == null) clean(livePage, thenRead = true) else {
             showCleaned.value = true
             play(page)
         }

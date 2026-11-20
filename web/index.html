@@ -37,7 +37,8 @@
   <section class="list-pane">
     <header class="pane-bar">
       <h2 id="list-title"></h2>
-      <button id="remove-source" class="remove-source" hidden>Remove source</button>
+      <button id="mark-all-read" class="bar-button" title="Mark all read (Shift+A)" hidden>Mark all read</button>
+      <button id="remove-source" class="bar-button remove-source" hidden>Remove source</button>
       <label id="show-read-label" class="toggle"><input type="checkbox" id="show-read"> Show read</label>
     </header>
     <ol id="list" class="list"></ol>
@@ -50,7 +51,7 @@
       <a id="open-original" target="_blank" rel="noopener noreferrer" title="Open the original page (o)">Open original ↗</a>
     </header>
     <iframe id="reader" title="Article" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe>
-    <p id="reader-empty" class="reader-empty">Choose an article.<br><span class="keys">j / k next / previous · m read · s save · o original</span></p>
+    <p id="reader-empty" class="reader-empty">Choose an article.<br><span class="keys">j / k next / previous · m read · s save · o original · Shift+A all read</span></p>
   </section>
 </div>
 

@@ -6,6 +6,8 @@ build records its commit id; both show at the bottom of the side menu.
 
 ## Unreleased
 
+- Laptop page: **Mark all read** for Unread, a group or a source (button at the top
+  of the list, or Shift+A), as on the phone.
 - Clean up in the reader now also works on sites that refuse the app's download
   ("HTTP 403" or Cloudflare's browser check): the page is loaded in an invisible
   browser view and cleaned from there. This takes a few seconds longer.

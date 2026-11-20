@@ -173,7 +173,8 @@ Everything below works and is in version 0.8.0 unless marked otherwise.
   of the database.
 - **Laptop page** (`web/`, plain HTML/CSS/JS, no build step): unread, saved,
   recently read, groups and sources with unread counts; the article in a sandboxed
-  frame styled like the reader; mark read/unread and save; keys j/k, m, s, o; add a
+  frame styled like the reader; mark read/unread and save; mark all read (Unread, a
+  group or a source); keys j/k, m, s, o, Shift+A; add a
   source (feed or website address, optional groups) or remove one, which the phone
   then does. Format
   of the file shared with the phone: [`sync/README.md`](sync/README.md).
@@ -209,6 +210,9 @@ What you read on the computer reaches the phone when yoreader is opened there (o
 at its next background refresh); what you read on the phone reaches the computer
 when you leave the app, plus however long Google Drive takes to copy the file. Read
 articles are in the file for 7 days without their text (use "Open original").
+
+**Mark all read** (top of the list, in Unread, a group or a source) marks every
+unread article in that list as read, here and on the phone at its next sync.
 
 **+ Add source** (under Sources) takes a feed or website address and, optionally,
 groups. The phone adds it, like a source added on the phone, the next time it reads

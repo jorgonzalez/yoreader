@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.Subject
 import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.MarkEmailRead
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
@@ -24,6 +25,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -32,6 +34,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,7 +68,7 @@ fun ReaderScreen(
     onClean: () -> Unit,
     onSetShowFeedVersion: (Boolean) -> Unit,
     onSetSaved: (Boolean) -> Unit,
-    onMarkUnread: () -> Unit,
+    onSetRead: (Boolean) -> Unit,
     /** Opens a link inside the app (where it can be cleaned up and read aloud). */
     onOpenLink: (String) -> Unit,
 ) {
@@ -102,6 +105,9 @@ fun ReaderScreen(
                 },
                 actions = {
                     if (article == null) return@TopAppBar
+                    // Up to eight buttons: a little narrower than the usual 48dp, so they
+                    // fit next to the back arrow on a ~410dp wide phone.
+                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides ACTION_SIZE) {
 
                     // Read aloud / pause / resume
                     IconButton(onClick = onReadAloud) {
@@ -118,7 +124,7 @@ fun ReaderScreen(
 
                     // Clean up; once cleaned, switches between the two versions.
                     if (cleaning) {
-                        Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                        Box(Modifier.size(ACTION_SIZE), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
                         }
                     } else {
@@ -152,63 +158,55 @@ fun ReaderScreen(
                         }
                     }
 
-                    Box {
+                    // Opening marks the article read; this switches it back (and forth).
+                    IconButton(onClick = { onSetRead(!article.isRead) }) {
+                        if (article.isRead) {
+                            Icon(Icons.Default.MarkEmailUnread, contentDescription = "Mark as unread")
+                        } else {
+                            Icon(Icons.Default.MarkEmailRead, contentDescription = "Mark as read")
+                        }
+                    }
+
+                    if (link != null) {
+                        // The original web page inside the app (links work there too).
+                        IconButton(onClick = { onOpenLink(link) }) {
+                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "Open original page")
+                        }
+                        IconButton(onClick = { openExternal(context, link) }) {
+                            Icon(Icons.Default.Public, contentDescription = "Open in browser")
+                        }
+                    }
+
+                    // Only the cleaned-up version has more options.
+                    if (hasCleaned) Box {
                         IconButton(onClick = { menuOpen = true }) {
                             Icon(Icons.Default.MoreVert, contentDescription = "More options")
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                             DropdownMenuItem(
-                                text = { Text("Mark as unread") },
-                                leadingIcon = { Icon(Icons.Default.MarkEmailUnread, contentDescription = null) },
+                                text = {
+                                    Text(if (showingCleaned) "Show feed version" else "Show cleaned-up version")
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.AutoMirrored.Filled.Subject, contentDescription = null)
+                                },
                                 onClick = {
                                     menuOpen = false
-                                    onMarkUnread()
+                                    onSetShowFeedVersion(!showFeedVersion)
                                 },
                             )
                             if (link != null) {
-                                // The original web page inside the app (links work there too).
                                 DropdownMenuItem(
-                                    text = { Text("Open original page") },
-                                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null) },
+                                    text = { Text("Clean up again") },
+                                    leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
                                     onClick = {
                                         menuOpen = false
-                                        onOpenLink(link)
+                                        onClean()
                                     },
                                 )
-                                DropdownMenuItem(
-                                    text = { Text("Open in browser") },
-                                    leadingIcon = { Icon(Icons.Default.Public, contentDescription = null) },
-                                    onClick = {
-                                        menuOpen = false
-                                        openExternal(context, link)
-                                    },
-                                )
-                            }
-                            if (hasCleaned) {
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(if (showingCleaned) "Show feed version" else "Show cleaned-up version")
-                                    },
-                                    leadingIcon = {
-                                        Icon(Icons.AutoMirrored.Filled.Subject, contentDescription = null)
-                                    },
-                                    onClick = {
-                                        menuOpen = false
-                                        onSetShowFeedVersion(!showFeedVersion)
-                                    },
-                                )
-                                if (link != null) {
-                                    DropdownMenuItem(
-                                        text = { Text("Clean up again") },
-                                        leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
-                                        onClick = {
-                                            menuOpen = false
-                                            onClean()
-                                        },
-                                    )
-                                }
                             }
                         }
+                    }
                     }
                 },
             )
@@ -246,3 +244,6 @@ fun ReaderScreen(
         }
     }
 }
+
+/** Width of each top bar button in the reader. */
+private val ACTION_SIZE = 44.dp

@@ -357,7 +357,7 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                         onClean = readerVm::clean,
                         onSetShowFeedVersion = readerVm::setShowFeedVersion,
                         onSetSaved = readerVm::setStarred,
-                        onMarkUnread = { readerVm.setRead(false) },
+                        onSetRead = readerVm::setRead,
                         onOpenLink = { navController.navigate(webRoute(it)) },
                     )
                 }

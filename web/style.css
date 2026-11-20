@@ -53,7 +53,7 @@ a { color: var(--accent); }
 .nav-item.failing .count::before { content: "⚠ "; color: var(--error); }
 .nav-item.removing .name { text-decoration: line-through; color: var(--muted); }
 .nav-item.removing .count { font-style: italic; }
-.remove-source { font-size: 13px; padding: 4px 10px; }
+.bar-button { font-size: 13px; padding: 4px 10px; white-space: nowrap; }
 .remove-source:disabled { cursor: default; color: var(--muted); border-color: var(--outline); }
 .nav-item.pending { cursor: default; }
 .nav-item.pending .name, .nav-item.pending .count { color: var(--muted); font-style: italic; }

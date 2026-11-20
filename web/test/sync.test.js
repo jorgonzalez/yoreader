@@ -162,3 +162,13 @@ test('adding and removing the same source keeps only the last request', () => {
   assert.equal(S.requestFor(p, url).remove, undefined);
   assert.equal(S.requestFor(p, 'https://other.example.net/'), null);
 });
+
+test('mark all read marks only the unread ones, at one time', () => {
+  const file = sample();
+  const unread = file.articles.filter((a) => !a.read);
+  assert.ok(unread.length > 0);
+  const pending = S.markAllRead({}, file.articles, NOW);
+  assert.equal(Object.keys(pending).length, unread.length);
+  for (const a of unread) assert.deepEqual(pending[S.key(a)], { read: true, readAt: NOW });
+  assert.ok(S.view(file, pending).every((a) => a.read));
+});

@@ -395,9 +395,12 @@
       $('remove-source').disabled = !!removing;
       $('remove-source').textContent = removing ? 'Removal waiting for the phone' : 'Remove source';
     }
+    // As on the phone: in Unread, a group or a source (not Saved or Recently read).
+    var markable = state.view.kind !== 'saved' && state.view.kind !== 'read';
+    var items = listed();
+    $('mark-all-read').hidden = !markable || !items.some(function (a) { return !a.read; });
     var ol = $('list');
     ol.textContent = '';
-    var items = listed();
     if (!items.length) {
       var li = document.createElement('li');
       li.className = 'none';
@@ -575,6 +578,23 @@
     $('add-source-message').hidden = false;
   }
 
+  function markAllRead() {
+    if (state.view.kind === 'saved' || state.view.kind === 'read') return;
+    var unread = listed().filter(function (a) { return !a.read; });
+    if (!unread.length) return;
+    var what = state.view.kind === 'unread' ? 'all ' + unread.length + ' unread articles'
+      : 'the ' + unread.length + ' unread articles in “' + viewTitle(state.view) + '”';
+    if (!confirm('Mark ' + what + ' as read? Also on the phone, when it next syncs.')) return;
+    state.pending = S.markAllRead(state.pending, unread, Date.now());
+    if (state.handle) savePending(); // not in the demo
+    // They leave the list (unless Show read is on), so the open one goes too.
+    state.sticky = {};
+    scheduleWrite();
+    render();
+  }
+
+  $('mark-all-read').onclick = markAllRead;
+
   $('remove-source').onclick = function () {
     var f = state.view.kind === 'feed' && feedsByUrl()[state.view.id];
     if (!f) return;
@@ -618,6 +638,7 @@
       case 'k': case 'ArrowUp': step(-1); break;
       case 'm': if (a) setField(a, 'read', !a.read); break;
       case 's': if (a) setField(a, 'saved', !a.saved); break;
+      case 'A': markAllRead(); break;
       case 'o': if (a && a.link) window.open(a.link, '_blank', 'noopener'); break;
       case 'Escape': state.currentKey = null; render(); break;
       default: return;

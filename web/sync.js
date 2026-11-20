@@ -84,6 +84,13 @@
     return out;
   }
 
+  /** Marks every unread one of [articles] read, as one change time. */
+  function markAllRead(pending, articles, now) {
+    return articles.reduce(function (out, a) {
+      return a.read ? out : change(out, a, 'read', true, now);
+    }, pending);
+  }
+
   /**
    * Pending changes still needed: a write by the phone that has the same or a newer
    * state confirms a change; one for an article no longer in such a write is moot.
@@ -253,6 +260,7 @@
     key: key,
     view: view,
     change: change,
+    markAllRead: markAllRead,
     prune: prune,
     needsWrite: needsWrite,
     applyPending: applyPending,

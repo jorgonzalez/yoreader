@@ -529,12 +529,19 @@ private fun ArticleList(
     val articles by listVm.articles.collectAsStateWithLifecycle()
     val unreadOnly by listVm.unreadOnly.collectAsStateWithLifecycle()
     val isSaved = listVm.scope == ArticleScope.Saved
+    LifecycleResumeEffect(listVm) {
+        listVm.onShown()
+        onPauseOrDispose {}
+    }
     ArticlesScreen(
         title = title,
         articles = articles,
         emptyText = emptyText(noSources),
         refreshing = refreshing,
-        onOpenArticle = { navController.navigate("article/$it") },
+        onOpenArticle = {
+            listVm.onOpen(it)
+            navController.navigate("article/$it")
+        },
         onSwipe = listVm::swipe,
         onUndo = listVm::undo,
         onBack = if (topLevel) null else ({ navController.popBackStack() }),

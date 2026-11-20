@@ -3,6 +3,7 @@ package com.yoreader.app
 import android.app.Application
 import android.util.Xml
 import com.yoreader.app.clean.ArticleCleaner
+import com.yoreader.app.clean.BrowserCleaner
 import com.yoreader.app.data.AppDatabase
 import com.yoreader.app.data.ArticleRetention
 import com.yoreader.app.fetch.FeedFetcher
@@ -33,6 +34,9 @@ class YoReaderApp : Application() {
     }
 
     val cleaner: ArticleCleaner by lazy { ArticleCleaner(httpClient) }
+
+    /** Clean up through an invisible browser view, for sites that refuse [cleaner]. */
+    val browserCleaner: BrowserCleaner by lazy { BrowserCleaner(this) }
 
     /** Choices from the Options screen. */
     val settings: AppSettings by lazy { AppSettings(this) }

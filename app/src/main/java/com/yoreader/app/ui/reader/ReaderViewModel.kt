@@ -62,13 +62,20 @@ class ReaderViewModel(
         savedState[KEY_SHOW_FEED] = value
     }
 
-    /** Downloads the article's page and keeps just the article text. */
+    /**
+     * Downloads the article's page and keeps just the article text. If the site refuses
+     * the download, loads the page in an invisible browser view instead.
+     */
     fun clean() {
         val a = article.value?.article ?: return
         if (cleaning.value) return
         viewModelScope.launch {
             cleaning.value = true
-            when (val result = app.cleaner.clean(a.link)) {
+            var result = app.cleaner.clean(a.link)
+            if (result is CleanResult.Failure && result.blocked) {
+                result = app.browserCleaner.clean(a.link) ?: result
+            }
+            when (result) {
                 is CleanResult.Success -> {
                     articleDao.setCleaned(
                         id = a.id,

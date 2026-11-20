@@ -32,12 +32,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yoreader.app.YoReaderApp
+import com.yoreader.app.clean.LoadedPage
+import com.yoreader.app.clean.loadedPage
 import com.yoreader.app.ui.theme.Background
 import java.util.Locale
-import kotlin.coroutines.resume
 import kotlin.math.abs
-import kotlinx.coroutines.suspendCancellableCoroutine
-import org.json.JSONArray
 
 /** Where reading aloud is in the page shown: see [ArticleHtml.READ_FUNCTION]. */
 internal data class ReadingSpot(val paragraph: Int, val progress: Float)
@@ -185,19 +184,8 @@ class LivePage {
     internal var view: WebView? = null
 
     /** The page's current address and HTML, or null if no page is loaded. */
-    suspend fun snapshot(): LoadedPage? {
-        val v = view ?: return null
-        val url = v.url?.takeIf { it.startsWith("http") } ?: return null
-        val json = suspendCancellableCoroutine { cont ->
-            v.evaluateJavascript("document.documentElement.outerHTML") { cont.resume(it) }
-        }
-        // The result is a JSON value: a quoted string, or null.
-        val html = runCatching { JSONArray("[$json]").optString(0, "") }.getOrNull()
-        return html?.takeIf { it.isNotBlank() && it != "null" }?.let { LoadedPage(url, it) }
-    }
+    suspend fun snapshot(): LoadedPage? = view?.let { loadedPage(it) }
 }
-
-data class LoadedPage(val url: String, val html: String)
 
 /**
  * A real web page, like a small browser: JavaScript on, links followed inside the view,

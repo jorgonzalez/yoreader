@@ -97,8 +97,10 @@ Everything below works and is in version 0.8.0 unless marked otherwise.
 - **Clean up** (`clean/ArticleCleaner`): downloads the article's page and keeps only
   the article with Readability4J + jsoup. Stored as `cleanedHtml` (shown in the
   reader) and `cleanedText` (paragraphs, used for listening and search). Some sites
-  refuse non-browser requests (e.g. Slashdot answers HTTP 403) or show a paywall;
-  the reader then says why it couldn't clean.
+  refuse non-browser requests (HTTP 403, e.g. Slashdot or elEconomista, or
+  Cloudflare's browser check): then the page is loaded in an invisible browser view
+  (`clean/BrowserCleaner`) and cleaned from there, a few seconds slower. If that
+  fails too, or the page is a paywall, the reader says why it couldn't clean.
 - **Read aloud** (`tts/`): Android TextToSpeech, one app-wide `ArticleSpeaker`.
   Reads the version on screen (cleaned if shown), title first, in chunks the engine
   accepts. **Languages**: Options lists the 15 supported languages that have a

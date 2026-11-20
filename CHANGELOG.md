@@ -6,6 +6,9 @@ build records its commit id; both show at the bottom of the side menu.
 
 ## Unreleased
 
+- Clean up on a page opened from a link now uses the page as shown, instead of
+  downloading it again. Sites that refuse app downloads ("HTTP 403", e.g.
+  elEconomista) can now be cleaned up and read aloud from there.
 - Double tap also works on pages opened from a link (the original page or a link in
   an article): it cleans the page up, and again switches between the cleaned and the
   original page.

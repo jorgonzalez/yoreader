@@ -8,6 +8,7 @@ import net.dankito.readability4j.extended.Readability4JExtended
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
 import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.io.InterruptedIOException
@@ -67,6 +68,13 @@ class ArticleCleaner(private val client: OkHttpClient) {
         return withContext(Dispatchers.Default) { extract(bytes, finalUrl) }
     }
 
+    /**
+     * Cleans a page that's already loaded (e.g. in the app's browser view), without
+     * downloading it again: works for sites that only let browsers in.
+     */
+    suspend fun cleanLoaded(html: String, url: String): CleanResult =
+        withContext(Dispatchers.Default) { extract(html, url) }
+
     private sealed interface Download
     private data class Loaded(val url: String, val bytes: ByteArray) : Download
     private data class Failed(val message: String) : Download
@@ -80,10 +88,17 @@ class ArticleCleaner(private val client: OkHttpClient) {
                 "(KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36"
 
         /** Extraction only, no network: [bytes] is the page, [url] its address. */
-        fun extract(bytes: ByteArray, url: String): CleanResult {
+        fun extract(bytes: ByteArray, url: String): CleanResult = extract(url) {
+            // null charset: jsoup uses the BOM / <meta charset>, defaulting to UTF-8.
+            Jsoup.parse(ByteArrayInputStream(bytes), null, url)
+        }
+
+        /** Same, for a page that's already text (no charset to detect). */
+        fun extract(html: String, url: String): CleanResult = extract(url) { Jsoup.parse(html, url) }
+
+        private inline fun extract(url: String, parse: () -> Document): CleanResult {
             return try {
-                // null charset: jsoup uses the BOM / <meta charset>, defaulting to UTF-8.
-                val document = Jsoup.parse(ByteArrayInputStream(bytes), null, url)
+                val document = parse()
                 val article = Readability4JExtended(url, document).parse()
                 val html = article.content
                     ?: return CleanResult.Failure("Couldn't find the article text on this page")

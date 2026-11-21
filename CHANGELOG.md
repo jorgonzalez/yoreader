@@ -27,6 +27,8 @@ build records its commit id; both show at the bottom of the side menu.
 - Options → Nostr → Relays: choose your relays (remove, add, test, reset to the
   defaults). Your shares go there, and your next share also publishes the list, so
   people who follow you find your shares.
+- Laptop page: Add source also takes a Nostr public key (npub1…); the phone then
+  follows that person like when added there.
 
 ## 0.10.0 - 2026-11-20
 

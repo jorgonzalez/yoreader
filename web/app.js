@@ -390,7 +390,7 @@
         item.className = 'nav-item pending';
         item.title = 'Waiting for the phone to add it';
         item.innerHTML = '<span class="name"></span><span class="count">waiting</span>';
-        item.firstChild.textContent = r.url.replace(/^https?:\/\//, '');
+        item.firstChild.textContent = r.url.replace(/^(https?:\/\/|nostr:)/, '');
         box.appendChild(item);
       });
       // Sources without unread articles are hidden; this brings them back (and hides them again).
@@ -637,7 +637,7 @@
   $('add-source-form').onsubmit = function (e) {
     e.preventDefault();
     var url = S.normalizeUrl($('add-source-url').value);
-    if (!url) return addSourceMessage("That doesn't look like a web address.");
+    if (!url) return addSourceMessage("That doesn't look like a web address or a Nostr public key (npub1…).");
     var groups = Array.prototype.filter.call($('add-source-groups').querySelectorAll('input'), function (i) {
       return i.checked;
     }).map(function (i) { return i.value; });

@@ -21,7 +21,7 @@
     <div class="add-source">
       <button id="add-source-open" class="nav-item add-open"><span class="name">+ Add source</span></button>
       <form id="add-source-form" class="add-form" hidden>
-        <label for="add-source-url">Feed or website address</label>
+        <label for="add-source-url">Feed, website or Nostr npub</label>
         <input id="add-source-url" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="example.org/feed.xml">
         <div id="add-source-groups" class="add-groups"></div>
         <p id="add-source-message" class="add-message" hidden></p>
@@ -29,7 +29,7 @@
           <button type="submit" class="primary">Add</button>
           <button type="button" id="add-source-cancel">Cancel</button>
         </div>
-        <p class="add-hint">The phone adds it the next time it syncs: when yoreader is opened or closed, or at the hourly refresh.</p>
+        <p class="add-hint">A Nostr public key (npub1…) follows what that person shares. The phone adds it the next time it syncs: when yoreader is opened or closed, or at the hourly refresh.</p>
       </form>
     </div>
     <div id="status" class="status"></div>

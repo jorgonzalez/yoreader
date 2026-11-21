@@ -136,7 +136,44 @@
    * A cleaned-up http(s) address for what was typed, or null if it isn't one; a
    * missing scheme means https. Same rules as the app (data/FeedUrl.kt).
    */
+  var BECH32 = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
+
+  /** Whether [s] is valid bech32 (BIP-173) with prefix [prefix] and a 32-byte payload. */
+  function isBech32Key(s, prefix) {
+    if (s.indexOf(prefix + '1') !== 0 || s.length !== prefix.length + 1 + 52 + 6) return false;
+    var values = [];
+    for (var i = prefix.length + 1; i < s.length; i++) {
+      var v = BECH32.indexOf(s.charAt(i));
+      if (v < 0) return false;
+      values.push(v);
+    }
+    var gen = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
+    var all = [];
+    for (i = 0; i < prefix.length; i++) all.push(prefix.charCodeAt(i) >> 5);
+    all.push(0);
+    for (i = 0; i < prefix.length; i++) all.push(prefix.charCodeAt(i) & 31);
+    all = all.concat(values);
+    var chk = 1;
+    all.forEach(function (x) {
+      var top = chk >>> 25;
+      chk = ((chk & 0x1ffffff) << 5) ^ x;
+      for (var j = 0; j < 5; j++) if ((top >>> j) & 1) chk ^= gen[j];
+    });
+    return chk === 1;
+  }
+
+  /**
+   * A Nostr public key ("npub1…", with or without "nostr:") as the app stores a
+   * followed person: "nostr:npub1…". Null for anything else.
+   */
+  function nostrSource(input) {
+    var s = String(input || '').trim().toLowerCase().replace(/^nostr:/, '');
+    return isBech32Key(s, 'npub') ? 'nostr:' + s : null;
+  }
+
   function normalizeUrl(input) {
+    var nostr = nostrSource(input);
+    if (nostr) return nostr;
     var s = String(input || '').trim();
     if (!s || /\s/.test(s)) return null;
     if (s.indexOf('://') < 0) s = 'https://' + s;
@@ -275,6 +312,7 @@
     needsWrite: needsWrite,
     applyPending: applyPending,
     normalizeUrl: normalizeUrl,
+    nostrSource: nostrSource,
     feedKey: feedKey,
     findFeed: findFeed,
     addFeed: addFeed,

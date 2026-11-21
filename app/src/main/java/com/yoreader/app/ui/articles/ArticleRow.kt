@@ -72,7 +72,7 @@ private const val MIN_SWIPE_FRACTION = 0.2f
  * An article row. Swipe left toggles read, swipe right toggles saved for later; the
  * card must be dragged at least 20% of its width (a short flick doesn't count).
  * The card springs back after a swipe, showing its new state; a row leaving the list
- * fades and can't be swiped again (the snackbar's Undo brings it back).
+ * fades, and can still be swiped (e.g. saved, or marked unread to keep it).
  */
 @Composable
 internal fun SwipeableArticleRow(
@@ -114,7 +114,6 @@ internal fun SwipeableArticleRow(
         modifier = modifier
             .onSizeChanged { rowWidth = it.width }
             .alpha(leavingAlpha),
-        gesturesEnabled = !item.leaving,
         backgroundContent = {
             when (state.dismissDirection) {
                 SwipeToDismissBoxValue.StartToEnd -> SwipeBackground(

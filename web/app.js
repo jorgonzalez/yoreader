@@ -11,6 +11,7 @@
   var PENDING_KEY = 'yoreader.pending';
   var PENDING_FEEDS_KEY = 'yoreader.pendingFeeds';
   var VIEW_KEY = 'yoreader.view';
+  var ALL_SOURCES_KEY = 'yoreader.allSources';
   var POLL_MS = 30 * 1000;
   var WRITE_DELAY_MS = 1500;
 
@@ -23,6 +24,8 @@
     pendingFeeds: loadPendingFeeds(),
     view: loadView(),
     showRead: false,
+    /** Also list sources without unread articles in the side pane. */
+    allSources: loadAllSources(),
     currentKey: null,
     /** Opened in this view: stay listed after being marked read, until the view changes. */
     sticky: {},
@@ -52,6 +55,10 @@
   function savePendingFeeds() {
     try { localStorage.setItem(PENDING_FEEDS_KEY, JSON.stringify(state.pendingFeeds)); } catch (e) { /* private window */ }
   }
+  function loadAllSources() {
+    try { return localStorage.getItem(ALL_SOURCES_KEY) === '1'; } catch (e) { return false; }
+  }
+
   function loadView() {
     try { return JSON.parse(localStorage.getItem(VIEW_KEY)) || { kind: 'unread' }; } catch (e) { return { kind: 'unread' }; }
   }
@@ -359,9 +366,16 @@
     var waiting = state.pendingFeeds.filter(function (r) { return !r.remove && !S.findFeed(state.file, r.url); });
     if (state.file.feeds.length || waiting.length) {
       box.appendChild(heading('Sources'));
+      var hidden = 0;
       state.file.feeds.forEach(function (f) {
+        var removing = (S.requestFor(state.pendingFeeds, f.url) || {}).remove;
+        var selected = state.view.kind === 'feed' && state.view.id === f.url;
+        if (!state.allSources && !S.sourceShown(f, unreadByFeed[f.url] || 0, selected, removing)) {
+          hidden++;
+          return;
+        }
         var b = navButton(f.title, unreadByFeed[f.url] || 0, { kind: 'feed', id: f.url });
-        if ((S.requestFor(state.pendingFeeds, f.url) || {}).remove) {
+        if (removing) {
           b.classList.add('removing');
           b.title = 'Waiting for the phone to remove it';
           b.lastChild.textContent = 'removing';
@@ -379,6 +393,18 @@
         item.firstChild.textContent = r.url.replace(/^https?:\/\//, '');
         box.appendChild(item);
       });
+      // Sources without unread articles are hidden; this brings them back (and hides them again).
+      if (hidden || state.allSources) {
+        var more = document.createElement('button');
+        more.className = 'nav-more';
+        more.textContent = state.allSources ? 'Hide sources without unread' : 'Show all sources (' + hidden + ' more)';
+        more.onclick = function () {
+          state.allSources = !state.allSources;
+          try { localStorage.setItem(ALL_SOURCES_KEY, state.allSources ? '1' : ''); } catch (e) { /* private window */ }
+          render();
+        };
+        box.appendChild(more);
+      }
     }
   }
 

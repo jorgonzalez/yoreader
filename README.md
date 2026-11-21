@@ -174,7 +174,8 @@ Everything below works and is in version 0.10.0 unless marked otherwise.
   milliseconds: the phone only reads the first bytes of the file and a short summary
   of the database.
 - **Laptop page** (`web/`, plain HTML/CSS/JS, no build step): unread, saved,
-  recently read, groups and sources with unread counts; the article in a sandboxed
+  recently read, groups and sources with unread counts (sources without unread
+  articles are hidden, "Show all sources" lists them); the article in a sandboxed
   frame styled like the reader; mark read/unread and save; mark all read (Unread, a
   group or a source); keys j/k, m, s, o, Shift+A; add a
   source (feed or website address, optional groups) or remove one, which the phone
@@ -186,7 +187,7 @@ Everything below works and is in version 0.10.0 unless marked otherwise.
   (paragraph numbering, script stripping, text size), the Options values
   (text sizes, clean-up period) and the sync file. Run with
   `./gradlew :app:testDebugUnitTest`. The laptop page's sync logic has its own
-  tests (13), on the same sample file: `node --test web/test/*.test.js`.
+  tests (15), on the same sample file: `node --test web/test/*.test.js`.
 
 ## Laptop page
 

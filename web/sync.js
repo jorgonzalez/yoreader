@@ -92,6 +92,15 @@
   }
 
   /**
+   * Whether a source is listed in the side pane: only those with unread articles,
+   * plus the one open ([selected]), one that fails to update ([feed.error]) and one
+   * waiting to be removed ([removing]), so those stay in sight.
+   */
+  function sourceShown(feed, unread, selected, removing) {
+    return unread > 0 || !!selected || !!feed.error || !!removing;
+  }
+
+  /**
    * Pending changes still needed: a write by the phone that has the same or a newer
    * state confirms a change; one for an article no longer in such a write is moot.
    */
@@ -261,6 +270,7 @@
     view: view,
     change: change,
     markAllRead: markAllRead,
+    sourceShown: sourceShown,
     prune: prune,
     needsWrite: needsWrite,
     applyPending: applyPending,

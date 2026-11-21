@@ -8,6 +8,9 @@ build records its commit id; both show at the bottom of the side menu.
 
 - A row on its way out of a list (just swiped, or an article you just read) can
   still be swiped: right to save it, left to mark it unread and keep it in the list.
+- Laptop page: the side pane lists only sources with unread articles (plus the one
+  open, failing ones and ones being removed). "Show all sources" at the end of the
+  list shows the others.
 
 ## 0.10.0 - 2026-11-20
 

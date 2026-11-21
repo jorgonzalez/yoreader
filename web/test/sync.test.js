@@ -172,3 +172,12 @@ test('mark all read marks only the unread ones, at one time', () => {
   for (const a of unread) assert.deepEqual(pending[S.key(a)], { read: true, readAt: NOW });
   assert.ok(S.view(file, pending).every((a) => a.read));
 });
+
+test('the side pane lists sources with unread articles, and the ones to keep in sight', () => {
+  const feed = { url: 'https://a.example/feed', title: 'A' };
+  assert.equal(S.sourceShown(feed, 3, false, false), true);
+  assert.equal(S.sourceShown(feed, 0, false, false), false);
+  assert.equal(S.sourceShown(feed, 0, true, false), true, 'the source open now');
+  assert.equal(S.sourceShown({ ...feed, error: 'HTTP 404' }, 0, false, false), true, 'a failing source');
+  assert.equal(S.sourceShown(feed, 0, false, true), true, 'a source being removed');
+});

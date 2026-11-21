@@ -55,6 +55,11 @@ a { color: var(--accent); }
 .nav-item.removing .count { font-style: italic; }
 .bar-button { font-size: 13px; padding: 4px 10px; white-space: nowrap; }
 .remove-source:disabled { cursor: default; color: var(--muted); border-color: var(--outline); }
+.nav-more {
+  display: block; width: 100%; text-align: left; background: none; border: none; border-radius: 0;
+  padding: 6px 16px; font-size: 13px; color: var(--accent);
+}
+.nav-more:hover { background: var(--surface-high); }
 .nav-item.pending { cursor: default; }
 .nav-item.pending .name, .nav-item.pending .count { color: var(--muted); font-style: italic; }
 .nav-item.pending:hover { background: none; }

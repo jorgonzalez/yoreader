@@ -130,6 +130,7 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.secp256k1.jni.jvm)
+    testImplementation(libs.okhttp.mockwebserver) // a fake Nostr relay
     // Real XmlPullParser for JVM unit tests (android.jar only has stubs).
     testImplementation(libs.kxml2)
     // Real org.json for JVM unit tests (sync file), same reason.

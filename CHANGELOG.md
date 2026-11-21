@@ -15,6 +15,9 @@ build records its commit id; both show at the bottom of the side menu.
 - Options → Nostr: create a Nostr key (or use one you have), copy or share your public
   key, back up or remove the private one. First step towards sharing articles with
   others over Nostr; nothing is published yet.
+- Options → Nostr → Relays: the Nostr relays yoreader will use, with a Test button
+  that shows which ones answer. (The client underneath can publish and read; the
+  sharing itself comes next.)
 
 ## 0.10.0 - 2026-11-20
 

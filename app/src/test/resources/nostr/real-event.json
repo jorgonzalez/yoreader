@@ -1,0 +1,42 @@
+{
+ "content": "👀👀👀\nnostr:nevent1qqszauyma0yxs7anfhzlxqyeh8ne6hvl8y0rqnzpw0gwt5p5u2f7uycpzamhxue69uhhyetvv9ujuurjd9kkzmpwdejhgtczyqduwzspfzelx9k6x0lrez0j8cl8rtz0lxvqylk8z2ustnfy76jpzqcyqqqqqqgnddve4",
+ "created_at": 1795243342,
+ "id": "000000660d15819b52e5ff7908b46ef819827f693b42be9299a8263c4cbb0d53",
+ "kind": 1,
+ "pubkey": "c3caba20313ab8a447d9aae50f45ef505a8454c5748f60e0ce013541f80e20f2",
+ "sig": "bc653568d18a5b5c265d12c6359d8aef66e246369e5093ec40cbbce6b7ac7e0b20969cad34fc5b5caddbeb85c7c3fca36a19bc5cc4b700692df9d1d7df468d4a",
+ "tags": [
+  [
+   "p",
+   "1bc70a0148b3f316da33fe3c89f23e3e71ac4ff998027ec712b905cd24f6a411",
+   "wss://relay.damus.io/"
+  ],
+  [
+   "q",
+   "2ef09bebc8687bb34dc5f30099b9e79d5d9f391e304c4173d0e5d034e293ee13",
+   "wss://relay.primal.net/",
+   "1bc70a0148b3f316da33fe3c89f23e3e71ac4ff998027ec712b905cd24f6a411"
+  ],
+  [
+   "zap",
+   "1bc70a0148b3f316da33fe3c89f23e3e71ac4ff998027ec712b905cd24f6a411",
+   "wss://relay.damus.io/",
+   "0.9"
+  ],
+  [
+   "zap",
+   "c3caba20313ab8a447d9aae50f45ef505a8454c5748f60e0ce013541f80e20f2",
+   "wss://pyramid.fiatjaf.com/",
+   "0.1"
+  ],
+  [
+   "client",
+   "Amethyst"
+  ],
+  [
+   "nonce",
+   "301Rwh",
+   "24"
+  ]
+ ]
+}

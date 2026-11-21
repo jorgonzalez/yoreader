@@ -102,6 +102,8 @@ fun OptionsScreen(
     onCreateNostrKey: () -> Unit,
     onRestoreNostrKey: (NostrKey) -> Unit,
     onRemoveNostrKey: () -> Unit,
+    relays: List<String>,
+    onCheckRelays: suspend () -> List<Pair<String, String?>>,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -188,7 +190,7 @@ fun OptionsScreen(
 
             HorizontalDivider(Modifier.padding(top = 8.dp))
             SectionTitle("Nostr")
-            NostrSection(nostrKey, onCreateNostrKey, onRestoreNostrKey, onRemoveNostrKey)
+            NostrSection(nostrKey, onCreateNostrKey, onRestoreNostrKey, onRemoveNostrKey, relays, onCheckRelays)
 
             HorizontalDivider(Modifier.padding(top = 8.dp))
             SectionTitle("Storage")

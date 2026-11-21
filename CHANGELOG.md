@@ -4,31 +4,24 @@ Versions are `major.minor.patch`, set in `app/build.gradle.kts` (`appVersionName
 The build number (Android `versionCode`) is the number of git commits, and every
 build records its commit id; both show at the bottom of the side menu.
 
-## Unreleased
+## 0.11.0 - 2026-11-21
 
 - A row on its way out of a list (just swiped, or an article you just read) can
   still be swiped: right to save it, left to mark it unread and keep it in the list.
 - Laptop page: the side pane lists only sources with unread articles (plus the one
   open, failing ones and ones being removed). "Show all sources" at the end of the
   list shows the others.
-
-- Options → Nostr: create a Nostr key (or use one you have), copy or share your public
-  key, back up or remove the private one. First step towards sharing articles with
-  others over Nostr; nothing is published yet.
-- Options → Nostr → Relays: the Nostr relays yoreader will use, with a Test button
-  that shows which ones answer. (The client underneath can publish and read; the
-  sharing itself comes next.)
-- Reader → Share → **Share on Nostr…** (once you have a Nostr key): add an optional
-  comment and publish the article to your Nostr relays. Optionally also as a note,
-  so people using other Nostr apps see it too. Shares are public.
-- Follow people on Nostr: Add source now also takes a Nostr public key (npub1…). The
-  articles that person shares become a source like any other, named after their
-  Nostr profile; their comment shows above the link, and Clean up gets the article.
-- Options → Nostr → Relays: choose your relays (remove, add, test, reset to the
-  defaults). Your shares go there, and your next share also publishes the list, so
-  people who follow you find your shares.
-- Laptop page: Add source also takes a Nostr public key (npub1…); the phone then
-  follows that person like when added there.
+- **Share articles with others over Nostr**, an open network with no accounts:
+  - Options → Nostr: create a key (or use one you have), copy or share your public
+    key (npub), back up or remove the private one. It stays encrypted on the phone.
+  - Reader → Share → **Share on Nostr…**: publish the article with an optional
+    comment; optionally also as a note, for people on other Nostr apps. Shares are
+    public.
+  - **Follow people**: Add source (on the phone or the laptop page) takes a Nostr
+    public key (npub1…). What that person shares becomes a source like any other,
+    named after their profile, with their comment above the link.
+  - Options → Nostr → Relays: choose your relays (add, remove, test, reset). Your
+    shares go there, and the list is published so people who follow you find them.
 
 ## 0.10.0 - 2026-11-20
 

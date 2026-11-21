@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -27,12 +28,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.yoreader.app.nostr.NostrKey
+import kotlinx.coroutines.launch
 
 /**
  * Your Nostr identity, for sharing articles with others: create one, or bring one from
@@ -44,8 +47,13 @@ internal fun NostrSection(
     onCreate: () -> Unit,
     onRestore: (NostrKey) -> Unit,
     onRemove: () -> Unit,
+    relays: List<String>,
+    onCheckRelays: suspend () -> List<Pair<String, String?>>,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    /** Null: not tested; empty: testing; otherwise each relay's error (null: fine). */
+    var relayCheck by remember { mutableStateOf<List<Pair<String, String?>>?>(null) }
     var restoring by remember { mutableStateOf(false) }
     var backingUp by remember { mutableStateOf(false) }
     var removing by remember { mutableStateOf(false) }
@@ -78,6 +86,27 @@ internal fun NostrSection(
             TextButton(onClick = { backingUp = true }) { Text("Back up") }
             TextButton(onClick = { removing = true }) { Text("Remove") }
         }
+        val check = relayCheck
+        OptionRow(
+            icon = { Icon(Icons.Default.Hub, contentDescription = null) },
+            title = "Relays",
+            detail = when {
+                check == null -> relays.joinToString(" · ") { host(it) }
+                check.isEmpty() -> "Testing…"
+                else -> check.joinToString("\n") { (url, error) ->
+                    if (error == null) "✓ ${host(url)}" else "✗ ${host(url)}: $error"
+                }
+            },
+            trailing = {
+                TextButton(
+                    onClick = {
+                        relayCheck = emptyList()
+                        scope.launch { relayCheck = onCheckRelays() }
+                    },
+                    enabled = check?.isEmpty() != true,
+                ) { Text("Test") }
+            },
+        )
     }
 
     if (restoring) RestoreDialog(onRestore = { onRestore(it); restoring = false }, onDismiss = { restoring = false })
@@ -164,6 +193,8 @@ private fun BackupDialog(key: NostrKey, onDismiss: () -> Unit) {
         dismissButton = { TextButton(onClick = onDismiss) { Text("Done") } },
     )
 }
+
+private fun host(url: String): String = url.removePrefix("wss://").removePrefix("ws://").trimEnd('/')
 
 /** "npub1abcdef…uvwxyz": enough to recognise it. */
 private fun shortKey(npub: String): String = npub.take(12) + "…" + npub.takeLast(6)

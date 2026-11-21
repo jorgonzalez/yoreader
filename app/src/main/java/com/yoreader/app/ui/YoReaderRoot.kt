@@ -441,6 +441,8 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                         onCreateNostrKey = { app.nostrKeys.create() },
                         onRestoreNostrKey = { app.nostrKeys.restore(it) },
                         onRemoveNostrKey = { app.nostrKeys.remove() },
+                        relays = app.nostr.relays.map { it.url },
+                        onCheckRelays = { app.nostr.check() },
                         onBack = { navController.popBackStack() },
                     )
                 }

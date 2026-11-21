@@ -186,8 +186,12 @@ Everything below works and is in version 0.10.0 unless marked otherwise.
   public key (npub), back up the private one, remove it. The private key is kept
   encrypted with an Android Keystore key and left out of Android backups. Keys use
   secp256k1 through ACINQ's secp256k1-kmp (libsecp256k1); npub/nsec are NIP-19.
-  Sharing and following come next.
-- **Unit tests** (79): feed parsing, dates, HTML helpers and feed discovery, search
+  The Nostr client (`NostrEvent`, `NostrRelay`, `NostrClient`) signs and checks
+  events (NIP-01), publishes to and reads from relay.damus.io, nos.lol and
+  relay.primal.net over WebSockets (one short connection per job), and drops
+  duplicates and events whose id or signature don't check out. Options → Nostr →
+  Relays → Test shows which relays answer. Sharing and following come next.
+- **Unit tests** (89): feed parsing, dates, HTML helpers and feed discovery, search
   folding, OPML, clean up, speech text and speed, language detection in all 14
   languages, the reader's HTML
   (paragraph numbering, script stripping, text size), the Options values

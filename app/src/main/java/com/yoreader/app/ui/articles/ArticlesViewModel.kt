@@ -76,6 +76,13 @@ internal fun withOpened(
     return (rows.map { it to false } + held.map { it.copy(isRead = true) to true }).sortedWith(order)
 }
 
+/** Whether [row] (in this state) is listed in [scope]. */
+internal fun belongsIn(scope: ArticleScope, unreadOnly: Boolean, row: ArticleListRow): Boolean = when (scope) {
+    ArticleScope.Latest -> !row.isRead && !row.isStarred
+    ArticleScope.Saved -> row.isStarred
+    else -> !unreadOnly || !row.isRead
+}
+
 class ArticlesViewModel(
     application: Application,
     private val savedState: SavedStateHandle,
@@ -102,11 +109,14 @@ class ArticlesViewModel(
     /**
      * Swipes that take a row out of this list, by article id. The row stays on screen in
      * its new state for [LEAVE_DELAY_MS], so you can see what happened, and only then is
-     * the change saved (and the row goes). Undo before that just cancels it.
+     * the change saved (and the row goes). Meanwhile it can still be swiped: back into
+     * the list (which cancels it), or to another state that also leaves (which starts
+     * the wait again).
      */
     private val leaving = MutableStateFlow<Map<Long, Leaving>>(emptyMap())
 
-    private class Leaving(val result: SwipeResult, val job: Job)
+    /** [original]: the row as the database still has it; [target]: as it will be saved. */
+    private class Leaving(val original: ArticleListRow, val target: ArticleListRow, val job: Job)
 
     /**
      * Unread articles opened from this list, by id, as they were when opened. Opening an
@@ -124,10 +134,11 @@ class ArticlesViewModel(
             .combine(leaving) { rows, leaving ->
                 rows.map { (row, held) ->
                     if (held) return@map row.toListItem().copy(leaving = true)
-                    val swiped = leaving[row.id]?.result
+                    val swiped = leaving[row.id]
                     // Only while the database still has the row as it was when swiped.
-                    if (swiped != null && swiped.row.isRead == row.isRead && swiped.row.isStarred == row.isStarred) {
-                        row.after(swiped.action).toListItem().copy(leaving = true)
+                    if (swiped != null && swiped.original.isRead == row.isRead && swiped.original.isStarred == row.isStarred) {
+                        row.copy(isRead = swiped.target.isRead, isStarred = swiped.target.isStarred)
+                            .toListItem().copy(leaving = true)
                     } else {
                         row.toListItem()
                     }
@@ -151,34 +162,61 @@ class ArticlesViewModel(
     /**
      * Applies a swipe: READ flips read/unread, SAVE flips saved. The new value comes from
      * [row] as shown, so a repeated call for the same swipe sets the same value again.
+     * Rows on their way out (dimmed) can be swiped too.
      */
     fun swipe(row: ArticleListRow, action: SwipeAction): SwipeResult {
         val message = when (action) {
             SwipeAction.READ -> if (row.isRead) "Marked as unread" else "Marked as read"
             SwipeAction.SAVE -> if (row.isStarred) "Removed from saved" else "Saved for later"
         }
-        val result = SwipeResult(row, action, message)
-        if (row.id in leaving.value) return result // already on its way out
-        if (swipeRemovesRow(row, action)) {
+        move(row, row.after(action))
+        return SwipeResult(row, action, message)
+    }
+
+    /** Puts the article back the way it was before [result]'s swipe. */
+    fun undo(result: SwipeResult) {
+        move(result.row.after(result.action), result.row)
+    }
+
+    /** Changes the article from [shown] (as on screen) to [target]. */
+    private fun move(shown: ArticleListRow, target: ArticleListRow) {
+        val id = shown.id
+        if (id in opened.value) {
+            // Opened from here: the database already has it read. It stays until its
+            // time is up, unless the swipe brings it back into the list for good.
+            opened.update { if (belongs(target)) it - id else it + (id to target) }
+            app.appScope.launch { save(shown, target) }
+            return
+        }
+        val pending = leaving.value[id]
+        pending?.job?.cancel()
+        val original = pending?.original ?: shown
+        if (belongs(original) && !belongs(target)) {
             // The app's scope, so the change is still saved if this screen closes meanwhile.
             val job = app.appScope.launch {
                 delay(LEAVE_DELAY_MS)
-                apply(row.after(action), action)
+                save(original, target)
                 // Give the list a moment to drop the row before forgetting the swipe.
                 delay(1_000)
-                leaving.update { it - row.id }
+                leaving.update { if (it[id]?.target == target) it - id else it }
             }
-            leaving.update { it + (row.id to Leaving(result, job)) }
+            leaving.update { it + (id to Leaving(original, target, job)) }
         } else {
-            viewModelScope.launch { apply(row.after(action), action) }
+            leaving.update { it - id }
+            app.appScope.launch { save(original, target) }
         }
-        return result
+    }
+
+    /** Saves the values that differ between [from] (as stored) and [to]. */
+    private suspend fun save(from: ArticleListRow, to: ArticleListRow) {
+        if (from.isRead != to.isRead) articleDao.setRead(to.id, to.isRead)
+        if (from.isStarred != to.isStarred) articleDao.setStarred(to.id, to.isStarred)
     }
 
     /** Call before opening article [id] from this list. */
     fun onOpen(id: Long) {
         val row = articles.value?.firstOrNull { it.row.id == id }?.row ?: return
-        if (!row.isRead && id !in opened.value && swipeRemovesRow(row, SwipeAction.READ)) {
+        if (id !in opened.value && id !in leaving.value && belongs(row) && !belongs(row.copy(isRead = true))) {
             opened.update { it + (id to row) }
         }
     }
@@ -193,30 +231,7 @@ class ArticlesViewModel(
         }
     }
 
-    /** Saves the one value [action] changes, from [row] (the row as it should end up). */
-    private suspend fun apply(row: ArticleListRow, action: SwipeAction) = when (action) {
-        SwipeAction.READ -> articleDao.setRead(row.id, row.isRead)
-        SwipeAction.SAVE -> articleDao.setStarred(row.id, row.isStarred)
-    }
-
-    /** Puts the article back the way it was before [result]'s swipe. */
-    fun undo(result: SwipeResult) {
-        leaving.value[result.row.id]?.job?.cancel()
-        leaving.update { it - result.row.id }
-        app.appScope.launch {
-            when (result.action) {
-                SwipeAction.READ -> articleDao.setRead(result.row.id, result.row.isRead)
-                SwipeAction.SAVE -> articleDao.setStarred(result.row.id, result.row.isStarred)
-            }
-        }
-    }
-
-    /** Whether the row no longer belongs in this list after the swipe. */
-    fun swipeRemovesRow(row: ArticleListRow, action: SwipeAction): Boolean = when (scope) {
-        ArticleScope.Latest -> true // it becomes read or saved: both leave Latest
-        ArticleScope.Saved -> action == SwipeAction.SAVE
-        else -> action == SwipeAction.READ && unreadOnly.value && !row.isRead
-    }
+    private fun belongs(row: ArticleListRow) = belongsIn(scope, unreadOnly.value, row)
 
     fun markAllRead() {
         viewModelScope.launch {

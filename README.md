@@ -71,6 +71,7 @@ Everything below works and is in version 0.10.0 unless marked otherwise.
   list it stays for 2 seconds, then fades out. Undo in the
   snackbar puts it back. An article you open from such a list (it becomes read)
   is still there, shown as read, when you come back, and leaves 2 seconds later.
+  A fading row can still be swiped: save it, or mark it unread to keep it.
 - **Saved for later**: saved articles (stored in `Article.isStarred`).
 - **Articles** (all, one group, or one source): newest first, unread only by
   default (an "All" chip shows read ones too), the number of listed articles in a

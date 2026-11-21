@@ -55,6 +55,9 @@ interface FeedDao {
     @Update
     suspend fun update(feed: Feed)
 
+    @Query("UPDATE feeds SET title = :title WHERE id = :id")
+    suspend fun setTitle(id: Long, title: String)
+
     @Delete
     suspend fun delete(feed: Feed)
 }

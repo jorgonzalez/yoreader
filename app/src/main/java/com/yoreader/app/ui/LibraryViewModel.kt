@@ -247,6 +247,19 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
 
     fun refreshFeed(feedId: Long) = RefreshScheduler.refreshFeed(getApplication(), feedId)
 
+    /**
+     * Gives a source the user's own name. An empty name brings back the placeholder,
+     * which the next refresh replaces with the feed's (or Nostr profile's) own name.
+     */
+    fun renameFeed(feed: Feed, name: String) {
+        val clean = name.trim()
+        if (clean == feed.title) return
+        viewModelScope.launch {
+            feedDao.setTitle(feed.id, clean.ifEmpty { FeedUrl.defaultTitle(feed.url) })
+            if (clean.isEmpty()) refreshFeed(feed.id)
+        }
+    }
+
     fun deleteFeed(feed: Feed) {
         viewModelScope.launch { feedDao.delete(feed) }
     }

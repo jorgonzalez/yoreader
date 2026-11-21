@@ -465,6 +465,7 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                         onAddFeed = vm::addFeed,
                         onSetMembership = vm::setMembership,
                         onDeleteFeed = vm::deleteFeed,
+                        onRenameFeed = vm::renameFeed,
                         refreshing = refreshing,
                         onRefreshAll = vm::refreshAll,
                         onRefreshFeed = vm::refreshFeed,

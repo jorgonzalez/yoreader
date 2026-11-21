@@ -18,6 +18,9 @@ build records its commit id; both show at the bottom of the side menu.
 - Options → Nostr → Relays: the Nostr relays yoreader will use, with a Test button
   that shows which ones answer. (The client underneath can publish and read; the
   sharing itself comes next.)
+- Reader → Share → **Share on Nostr…** (once you have a Nostr key): add an optional
+  comment and publish the article to your Nostr relays. Optionally also as a note,
+  so people using other Nostr apps see it too. Shares are public.
 
 ## 0.10.0 - 2026-11-20
 

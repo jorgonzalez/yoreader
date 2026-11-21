@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -50,7 +51,7 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * One article. Top bar: read aloud, clean up (fetch the page and keep only the article),
- * save for later, share (title and link, to any app), and a menu with mark unread,
+ * save for later, share (title and link, to any app; or on Nostr), and a menu with mark unread,
  * open the original page (in the app), open in browser and version switching. Links
  * in the text also open in the app. While the article is read aloud, the paragraph
  * being read is highlighted and kept in view (until you scroll; Follow brings it back).
@@ -71,10 +72,17 @@ fun ReaderScreen(
     onSetRead: (Boolean) -> Unit,
     /** Opens a link inside the app (where it can be cleaned up and read aloud). */
     onOpenLink: (String) -> Unit,
+    /** Whether there's a Nostr key, so Share also offers "Share on Nostr". */
+    canShareOnNostr: Boolean = false,
+    sharingOnNostr: Boolean = false,
+    nostrAlsoNote: Boolean = false,
+    onShareOnNostr: (comment: String, alsoNote: Boolean) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
     var menuOpen by remember { mutableStateOf(false) }
+    var shareMenuOpen by remember { mutableStateOf(false) }
+    var nostrDialog by remember { mutableStateOf(false) }
     val article = item?.article
     val link = article?.link?.takeIf { it.isNotBlank() }
     val hasCleaned = article?.cleanedHtml != null
@@ -90,6 +98,18 @@ fun ReaderScreen(
 
     LaunchedEffect(messages) {
         messages.collect { snackbar.showSnackbar(it) }
+    }
+
+    if (nostrDialog && article != null) {
+        NostrShareDialog(
+            title = article.title,
+            alsoNote = nostrAlsoNote,
+            onShare = { comment, alsoNote ->
+                nostrDialog = false
+                onShareOnNostr(comment, alsoNote)
+            },
+            onDismiss = { nostrDialog = false },
+        )
     }
 
     Scaffold(
@@ -153,8 +173,36 @@ fun ReaderScreen(
                     }
 
                     if (link != null) {
-                        IconButton(onClick = { share(context, article.title, link) }) {
-                            Icon(Icons.Default.Share, contentDescription = "Share")
+                        Box {
+                            if (sharingOnNostr) {
+                                Box(Modifier.size(ACTION_SIZE), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+                                }
+                            } else {
+                                IconButton(onClick = {
+                                    if (canShareOnNostr) shareMenuOpen = true else share(context, article.title, link)
+                                }) {
+                                    Icon(Icons.Default.Share, contentDescription = "Share")
+                                }
+                            }
+                            DropdownMenu(expanded = shareMenuOpen, onDismissRequest = { shareMenuOpen = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Share link") },
+                                    leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
+                                    onClick = {
+                                        shareMenuOpen = false
+                                        share(context, article.title, link)
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Share on Nostr…") },
+                                    leadingIcon = { Icon(Icons.Default.Hub, contentDescription = null) },
+                                    onClick = {
+                                        shareMenuOpen = false
+                                        nostrDialog = true
+                                    },
+                                )
+                            }
                         }
                     }
 

@@ -181,3 +181,14 @@ test('the side pane lists sources with unread articles, and the ones to keep in 
   assert.equal(S.sourceShown({ ...feed, error: 'HTTP 404' }, 0, false, false), true, 'a failing source');
   assert.equal(S.sourceShown(feed, 0, false, true), true, 'a source being removed');
 });
+
+test('a Nostr public key is a source address, like on the phone', () => {
+  const npub = 'npub10elfcs4fr0l0r8af98jlmgdh9c8tcxjvz9qkw038js35mp4dma8qzvjptg'; // NIP-19 example
+  assert.equal(S.normalizeUrl(npub), 'nostr:' + npub);
+  assert.equal(S.normalizeUrl('  nostr:' + npub.toUpperCase() + ' '), 'nostr:' + npub);
+  assert.equal(S.normalizeUrl(npub.slice(0, -1) + 'q'), null, 'wrong checksum');
+  assert.equal(S.normalizeUrl('nsec1vl029mgpspedva04g90vltkh6fvh240zqtv9k0t9af8935ke9laqsnlfe5'), null, 'a private key');
+  assert.equal(S.normalizeUrl('example.org/feed'), 'https://example.org/feed');
+  const pending = S.addFeed([], S.normalizeUrl(npub), [], 1);
+  assert.equal(pending[0].url, 'nostr:' + npub);
+});

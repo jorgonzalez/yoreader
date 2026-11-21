@@ -178,7 +178,8 @@ Everything below works and is in version 0.10.0 unless marked otherwise.
   articles are hidden, "Show all sources" lists them); the article in a sandboxed
   frame styled like the reader; mark read/unread and save; mark all read (Unread, a
   group or a source); keys j/k, m, s, o, Shift+A; add a
-  source (feed or website address, optional groups) or remove one, which the phone
+  source (feed or website address, or a Nostr npub to follow someone; optional
+  groups) or remove one, which the phone
   then does. Format
   of the file shared with the phone: [`sync/README.md`](sync/README.md).
 - **Nostr key** (Options → Nostr, `nostr/`): the start of sharing articles with
@@ -213,7 +214,7 @@ Everything below works and is in version 0.10.0 unless marked otherwise.
   (paragraph numbering, script stripping, text size), the Options values
   (text sizes, clean-up period) and the sync file. Run with
   `./gradlew :app:testDebugUnitTest`. The laptop page's sync logic has its own
-  tests (15), on the same sample file: `node --test web/test/*.test.js`.
+  tests (16), on the same sample file: `node --test web/test/*.test.js`.
 
 ## Laptop page
 

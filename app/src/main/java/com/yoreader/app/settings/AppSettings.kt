@@ -2,6 +2,7 @@ package com.yoreader.app.settings
 
 import android.content.Context
 import com.yoreader.app.data.ArticleRetention
+import com.yoreader.app.nostr.NostrClient
 import com.yoreader.app.tts.TtsLanguages
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +36,25 @@ class AppSettings(context: Context) {
         _nostrAlsoNote.value = on
         prefs.edit().putBoolean(KEY_NOSTR_ALSO_NOTE, on).apply()
     }
+
+    private val _nostrRelays = MutableStateFlow(
+        prefs.getString(KEY_NOSTR_RELAYS, null)?.split('\n')?.filter { it.isNotBlank() }?.takeIf { it.isNotEmpty() }
+            ?: NostrClient.DEFAULT_RELAYS,
+    )
+
+    /** The Nostr relays used to share and to read the people you follow, in order. */
+    val nostrRelays: StateFlow<List<String>> = _nostrRelays.asStateFlow()
+
+    fun setNostrRelays(relays: List<String>) {
+        val clean = relays.distinct().ifEmpty { return }
+        _nostrRelays.value = clean
+        prefs.edit().putString(KEY_NOSTR_RELAYS, clean.joinToString("\n")).apply()
+    }
+
+    /** The relay list last published (one per line), to publish it again only after a change. */
+    var nostrPublishedRelays: String?
+        get() = prefs.getString(KEY_NOSTR_PUBLISHED_RELAYS, null)
+        set(value) = prefs.edit().putString(KEY_NOSTR_PUBLISHED_RELAYS, value).apply()
 
     private val _keepReadDays = MutableStateFlow(
         prefs.getInt(KEY_KEEP_READ_DAYS, ArticleRetention.DEFAULT_DAYS)
@@ -76,6 +96,8 @@ class AppSettings(context: Context) {
         const val KEY_KEEP_READ_DAYS = "keep_read_days"
         const val KEY_TTS_LANGUAGES = "tts_languages"
         const val KEY_NOSTR_ALSO_NOTE = "nostr_also_note"
+        const val KEY_NOSTR_RELAYS = "nostr_relays"
+        const val KEY_NOSTR_PUBLISHED_RELAYS = "nostr_published_relays"
     }
 }
 

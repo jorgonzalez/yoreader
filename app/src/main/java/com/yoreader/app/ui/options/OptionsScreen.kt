@@ -103,6 +103,7 @@ fun OptionsScreen(
     onRestoreNostrKey: (NostrKey) -> Unit,
     onRemoveNostrKey: () -> Unit,
     relays: List<String>,
+    onSetRelays: (List<String>) -> Unit,
     onCheckRelays: suspend () -> List<Pair<String, String?>>,
     onBack: () -> Unit,
 ) {
@@ -190,7 +191,7 @@ fun OptionsScreen(
 
             HorizontalDivider(Modifier.padding(top = 8.dp))
             SectionTitle("Nostr")
-            NostrSection(nostrKey, onCreateNostrKey, onRestoreNostrKey, onRemoveNostrKey, relays, onCheckRelays)
+            NostrSection(nostrKey, onCreateNostrKey, onRestoreNostrKey, onRemoveNostrKey, relays, onSetRelays, onCheckRelays)
 
             HorizontalDivider(Modifier.padding(top = 8.dp))
             SectionTitle("Storage")

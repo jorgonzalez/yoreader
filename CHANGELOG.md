@@ -24,6 +24,9 @@ build records its commit id; both show at the bottom of the side menu.
 - Follow people on Nostr: Add source now also takes a Nostr public key (npub1…). The
   articles that person shares become a source like any other, named after their
   Nostr profile; their comment shows above the link, and Clean up gets the article.
+- Options → Nostr → Relays: choose your relays (remove, add, test, reset to the
+  defaults). Your shares go there, and your next share also publishes the list, so
+  people who follow you find your shares.
 
 ## 0.10.0 - 2026-11-20
 

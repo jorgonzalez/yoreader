@@ -43,7 +43,7 @@ class YoReaderApp : Application() {
     val nostrKeys: NostrKeyStore by lazy { NostrKeyStore(this) }
 
     /** Publishes to and reads from Nostr relays. */
-    val nostr: NostrClient by lazy { NostrClient(httpClient) }
+    val nostr: NostrClient by lazy { NostrClient(httpClient, settings.nostrRelays.value) }
 
     /** Clean up through an invisible browser view, for sites that refuse [cleaner]. */
     val browserCleaner: BrowserCleaner by lazy { BrowserCleaner(this) }
@@ -76,6 +76,9 @@ class YoReaderApp : Application() {
         // Old read articles go at start-up and whenever the setting changes.
         appScope.launch {
             settings.keepReadDays.collect { cleanUpOldArticles() }
+        }
+        appScope.launch {
+            settings.nostrRelays.collect { nostr.setRelays(it) }
         }
         // While something is being read, a foreground service keeps it going with the
         // screen off and shows the controls (notification, lock screen, headset).

@@ -4,6 +4,12 @@ Versions are `major.minor.patch`, set in `app/build.gradle.kts` (`appVersionName
 The build number (Android `versionCode`) is the number of git commits, and every
 build records its commit id; both show at the bottom of the side menu.
 
+## Unreleased
+
+- Sources can be renamed (Manage sources → a source's ⋮ → Rename…), for example to
+  put a name on a Nostr npub. The name you give stays; leave it empty to go back to
+  the source's own name.
+
 ## 0.11.0 - 2026-11-21
 
 - A row on its way out of a list (just swiped, or an article you just read) can

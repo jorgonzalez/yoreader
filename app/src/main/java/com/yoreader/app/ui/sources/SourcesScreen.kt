@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
@@ -78,6 +79,7 @@ fun SourcesScreen(
     onAddFeed: (url: String, groupIds: Set<Long>) -> Unit,
     onSetMembership: (feedId: Long, groupId: Long, member: Boolean) -> Unit,
     onDeleteFeed: (Feed) -> Unit,
+    onRenameFeed: (Feed, String) -> Unit,
     refreshing: Boolean,
     onRefreshAll: () -> Unit,
     onRefreshFeed: (feedId: Long) -> Unit,
@@ -103,6 +105,7 @@ fun SourcesScreen(
     var showAdd by remember { mutableStateOf(false) }
     var editingId by remember { mutableStateOf<Long?>(null) }
     var deleting by remember { mutableStateOf<Feed?>(null) }
+    var renaming by remember { mutableStateOf<Feed?>(null) }
 
     val groupsById = groups.associateBy { it.id }
 
@@ -195,6 +198,7 @@ fun SourcesScreen(
                         },
                         trailingContent = {
                             SourceMenu(
+                                onRename = { renaming = item.feed },
                                 onEditGroups = { editingId = item.feed.id },
                                 onRefresh = { onRefreshFeed(item.feed.id) },
                                 onDelete = { deleting = item.feed },
@@ -246,6 +250,29 @@ fun SourcesScreen(
         )
     }
 
+    val toRename = renaming
+    if (toRename != null) {
+        TextInputDialog(
+            title = "Rename source",
+            label = "Name",
+            placeholder = FeedUrl.defaultTitle(toRename.url),
+            confirmLabel = "Rename",
+            initialValue = toRename.title,
+            validate = { null },
+            onDismiss = { renaming = null },
+            onConfirm = {
+                onRenameFeed(toRename, it)
+                renaming = null
+            },
+        ) {
+            Text(
+                "Leave it empty to use the source's own name.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+
     val toDelete = deleting
     if (toDelete != null) {
         ConfirmDialog(
@@ -261,15 +288,20 @@ fun SourcesScreen(
     }
 }
 
-/** ⋮ menu on a source row: groups, refresh, delete. */
+/** ⋮ menu on a source row: rename, groups, refresh, delete. */
 @Composable
-private fun SourceMenu(onEditGroups: () -> Unit, onRefresh: () -> Unit, onDelete: () -> Unit) {
+private fun SourceMenu(onRename: () -> Unit, onEditGroups: () -> Unit, onRefresh: () -> Unit, onDelete: () -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { open = true }) {
             Icon(Icons.Default.MoreVert, contentDescription = "Source options")
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text("Rename…") },
+                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                onClick = { open = false; onRename() },
+            )
             DropdownMenuItem(
                 text = { Text("Groups…") },
                 leadingIcon = { Icon(Icons.Default.Folder, contentDescription = null) },

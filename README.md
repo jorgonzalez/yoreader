@@ -135,7 +135,8 @@ Everything below works and is in version 0.11.0 unless marked otherwise.
   buttons (Android sends them to the app that plays the audio, which is the speech
   engine).
 - **Sources** (Manage sources): add by URL (optionally into groups); tap a source
-  for its articles; its menu changes groups, refreshes, or deletes. Each source
+  for its articles; its menu renames it (e.g. a Nostr npub to the person's name),
+  changes groups, refreshes, or deletes. Each source
   shows when it was last updated, unread/total articles, or the last error. The
   top bar's menu exports all sources and groups to an OPML file, or imports one
   (from any reader): groups become OPML folders; import only adds (new feeds are

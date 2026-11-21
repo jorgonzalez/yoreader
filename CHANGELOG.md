@@ -12,6 +12,10 @@ build records its commit id; both show at the bottom of the side menu.
   open, failing ones and ones being removed). "Show all sources" at the end of the
   list shows the others.
 
+- Options → Nostr: create a Nostr key (or use one you have), copy or share your public
+  key, back up or remove the private one. First step towards sharing articles with
+  others over Nostr; nothing is published yet.
+
 ## 0.10.0 - 2026-11-20
 
 - An article you open from Latest or an unread-only list no longer vanishes from

@@ -12,6 +12,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.filled.Laptop
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.OutlinedButton
+import com.yoreader.app.nostr.NostrKey
 import com.yoreader.app.sync.LaptopSync
 import android.content.Context
 import android.content.Intent
@@ -97,6 +98,10 @@ fun OptionsScreen(
     onUseSyncFile: (Uri) -> Unit,
     onSyncNow: () -> Unit,
     onStopSync: () -> Unit,
+    nostrKey: NostrKey?,
+    onCreateNostrKey: () -> Unit,
+    onRestoreNostrKey: (NostrKey) -> Unit,
+    onRemoveNostrKey: () -> Unit,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -180,6 +185,10 @@ fun OptionsScreen(
             HorizontalDivider(Modifier.padding(top = 8.dp))
             SectionTitle("Laptop")
             LaptopSyncSection(sync, onUseSyncFile, onSyncNow, onStopSync)
+
+            HorizontalDivider(Modifier.padding(top = 8.dp))
+            SectionTitle("Nostr")
+            NostrSection(nostrKey, onCreateNostrKey, onRestoreNostrKey, onRemoveNostrKey)
 
             HorizontalDivider(Modifier.padding(top = 8.dp))
             SectionTitle("Storage")
@@ -443,7 +452,7 @@ private fun KeepReadDialog(current: Int, onPick: (Int) -> Unit, onDismiss: () ->
 }
 
 @Composable
-private fun SectionTitle(text: String) {
+internal fun SectionTitle(text: String) {
     Text(
         text,
         style = MaterialTheme.typography.labelLarge,
@@ -453,7 +462,7 @@ private fun SectionTitle(text: String) {
 }
 
 @Composable
-private fun OptionRow(
+internal fun OptionRow(
     icon: @Composable () -> Unit,
     title: String,
     detail: String,

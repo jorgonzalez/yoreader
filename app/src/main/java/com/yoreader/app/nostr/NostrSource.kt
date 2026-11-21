@@ -38,7 +38,7 @@ class NostrSource(private val client: NostrClient) {
     companion object {
         const val PREFIX = "nostr:"
         const val KIND_PROFILE = 0
-        const val KIND_RELAY_LIST = 10002
+        const val KIND_RELAY_LIST = NostrShare.KIND_RELAY_LIST
         const val MAX_SHARES = 100
         /** Their own relays asked besides the defaults; more would slow refreshes down. */
         const val MAX_THEIR_RELAYS = 4

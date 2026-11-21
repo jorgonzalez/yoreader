@@ -201,8 +201,13 @@ Everything below works and is in version 0.10.0 unless marked otherwise.
   they write to; each share becomes an article (title, link, their comment), and a
   share made again updates it instead of adding a duplicate. Their name comes from
   their profile. Shared articles work like any other: groups, read/saved, search,
-  clean up, laptop sync.
-- **Unit tests** (98): feed parsing, dates, HTML helpers and feed discovery, search
+  clean up, laptop sync. **Relays** (Options → Nostr): your relay list (default
+  relay.damus.io, nos.lol, relay.primal.net; stored in AppSettings): remove, add
+  (`relay.example.com` becomes `wss://relay.example.com`), Test, Reset. Shares go to
+  it and followed people are read from it (plus their own relays). After a change,
+  the next share also publishes it as your relay list (NIP-65, kind 10002), so
+  people who follow you look there.
+- **Unit tests** (100): feed parsing, dates, HTML helpers and feed discovery, search
   folding, OPML, clean up, speech text and speed, language detection in all 14
   languages, the reader's HTML
   (paragraph numbering, script stripping, text size), the Options values

@@ -53,4 +53,24 @@ class NostrShareTest {
             NostrShare.summary(listOf("a" to PublishResult.Failed("Unable to resolve host"), "b" to PublishResult.Failed("x"))),
         )
     }
+
+    @Test
+    fun relayAddresses() {
+        assertEquals("wss://relay.example.com", NostrShare.normalizeRelay(" relay.example.com/ "))
+        assertEquals("wss://relay.example.com", NostrShare.normalizeRelay("WSS://Relay.Example.com"))
+        assertEquals("wss://relay.example.com:4848/inbox", NostrShare.normalizeRelay("wss://relay.example.com:4848/inbox"))
+        assertEquals("ws://localhost:7777", NostrShare.normalizeRelay("ws://localhost:7777"))
+        assertEquals(null, NostrShare.normalizeRelay("https://relay.example.com"))
+        assertEquals(null, NostrShare.normalizeRelay("relay"))
+        assertEquals(null, NostrShare.normalizeRelay("two words.com"))
+    }
+
+    @Test
+    fun relayListNamesEachRelay() {
+        val e = NostrShare.relayList(key, listOf("wss://a.example", "wss://b.example"), now = 5)
+        assertEquals(10002, e.kind)
+        assertEquals(listOf(listOf("r", "wss://a.example"), listOf("r", "wss://b.example")), e.tags)
+        assertEquals(listOf("wss://a.example", "wss://b.example"), NostrSource.writeRelays(e))
+        assertTrue(e.isValid())
+    }
 }

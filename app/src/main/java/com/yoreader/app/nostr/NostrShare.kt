@@ -31,6 +31,30 @@ object NostrShare {
         return NostrEvent.sign(key, KIND_NOTE, text, tags, now)
     }
 
+    /** NIP-65 relay list: the relays you write to and read from (no marker = both). */
+    const val KIND_RELAY_LIST = 10002
+
+    /** Your relay list, so people who follow you know where to find your shares. */
+    fun relayList(key: NostrKey, relays: List<String>, now: Long = nowSeconds()): NostrEvent =
+        NostrEvent.sign(key, KIND_RELAY_LIST, "", relays.map { listOf("r", it) }, now)
+
+    /** "wss://host[/path]" for what someone typed ("relay.example.com"), or null. */
+    fun normalizeRelay(input: String): String? {
+        var s = input.trim().trimEnd('/')
+        if (s.isEmpty() || s.any { it.isWhitespace() }) return null
+        if (!s.contains("://")) s = "wss://$s"
+        val uri = try {
+            URI(s)
+        } catch (e: Exception) {
+            return null
+        }
+        if (uri.scheme?.lowercase() !in setOf("wss", "ws")) return null
+        val host = uri.host ?: return null
+        if (!host.contains('.') && host != "localhost") return null
+        return uri.scheme.lowercase() + "://" + host.lowercase() +
+            (if (uri.port != -1) ":${uri.port}" else "") + uri.rawPath.orEmpty()
+    }
+
     /** The link, without its "#fragment" and tracking parameters (utm_…, fbclid…). */
     fun cleanUrl(url: String): String {
         val uri = try {

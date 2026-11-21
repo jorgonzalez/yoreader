@@ -9,6 +9,7 @@ import com.yoreader.app.clean.CleanResult
 import com.yoreader.app.data.ArticleWithFeed
 import com.yoreader.app.data.SearchText
 import com.yoreader.app.fetch.Html
+import com.yoreader.app.nostr.NostrRelay
 import com.yoreader.app.nostr.NostrShare
 import com.yoreader.app.tts.ArticleSpeaker
 import kotlinx.coroutines.channels.Channel
@@ -85,6 +86,13 @@ class ReaderViewModel(
             try {
                 val results = app.nostr.publish(NostrShare.bookmark(key, link, a.title, comment))
                 if (alsoNote) app.nostr.publish(NostrShare.note(key, link, a.title, comment))
+                // Once your relays changed (or the first time), tell followers where you write.
+                val relays = app.settings.nostrRelays.value
+                val listed = relays.joinToString("\n")
+                if (app.settings.nostrPublishedRelays != listed) {
+                    val sent = app.nostr.publish(NostrShare.relayList(key, relays))
+                    if (sent.any { it.second == NostrRelay.PublishResult.Accepted }) app.settings.nostrPublishedRelays = listed
+                }
                 _messages.send(NostrShare.summary(results))
             } finally {
                 sharingOnNostr.value = false

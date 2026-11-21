@@ -115,8 +115,13 @@ class NostrRelay(val url: String, private val client: OkHttpClient) {
         null
     }
 
-    private fun failure(t: Throwable, response: Response?): String =
-        response?.let { "HTTP ${it.code}" } ?: t.message ?: t.javaClass.simpleName
+    private fun failure(t: Throwable, response: Response?): String = when {
+        response != null -> "HTTP ${response.code}"
+        t is java.net.UnknownHostException -> "address not found"
+        t is java.net.ConnectException -> "can't connect"
+        t is java.net.SocketTimeoutException -> "no answer"
+        else -> t.message ?: t.javaClass.simpleName
+    }
 
     companion object {
         const val TIMEOUT_MS = 10_000L

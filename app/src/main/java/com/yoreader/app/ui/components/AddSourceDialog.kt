@@ -37,7 +37,7 @@ fun AddSourceDialog(
 
     TextInputDialog(
         title = if (intoGroup != null) "Add source to \"${intoGroup.name}\"" else "Add source",
-        label = "Feed or website URL",
+        label = "Feed, website or Nostr npub",
         placeholder = "example.com/feed.xml",
         confirmLabel = "Add",
         keyboardType = KeyboardType.Uri,
@@ -45,7 +45,7 @@ fun AddSourceDialog(
             val url = FeedUrl.normalize(input)
             val key = url?.let(FeedUrl::key)
             when {
-                url == null -> "Enter a valid web address"
+                url == null -> "Enter a web address or a Nostr public key (npub1…)"
                 intoGroup != null && key in groupKeys -> "This source is already in this group"
                 intoGroup == null && key in existingKeys -> "This source is already added"
                 else -> null
@@ -59,7 +59,8 @@ fun AddSourceDialog(
     ) {
         if (intoGroup != null) {
             Text(
-                "Paste the address of an RSS or Atom feed, or of a website that has one.",
+                "Paste the address of an RSS or Atom feed, or of a website that has one. " +
+                    "Or someone's Nostr public key (npub1…), to follow what they share.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

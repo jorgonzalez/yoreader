@@ -194,8 +194,15 @@ Everything below works and is in version 0.10.0 unless marked otherwise.
   once there's a key): an optional comment, published as a NIP-B0 web bookmark
   (kind 39701, "d" = the link without https:// or tracking parameters, so sharing
   again replaces it), and optionally as a plain note (kind 1) for other Nostr apps;
-  a message says how many relays took it. Following comes next.
-- **Unit tests** (93): feed parsing, dates, HTML helpers and feed discovery, search
+  a message says how many relays took it. **Follow someone**: add their npub as a
+  source (Add source accepts "npub1…"; stored as `nostr:npub1…`). Refreshing it
+  (`NostrSource`) reads their profile and relay list (NIP-65) from the default
+  relays, then their web bookmarks from the defaults plus up to 4 of the relays
+  they write to; each share becomes an article (title, link, their comment), and a
+  share made again updates it instead of adding a duplicate. Their name comes from
+  their profile. Shared articles work like any other: groups, read/saved, search,
+  clean up, laptop sync.
+- **Unit tests** (98): feed parsing, dates, HTML helpers and feed discovery, search
   folding, OPML, clean up, speech text and speed, language detection in all 14
   languages, the reader's HTML
   (paragraph numbering, script stripping, text size), the Options values

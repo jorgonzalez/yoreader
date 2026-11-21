@@ -12,6 +12,7 @@ import com.yoreader.app.fetch.FeedRefresher
 import com.yoreader.app.fetch.RefreshScheduler
 import com.yoreader.app.nostr.NostrClient
 import com.yoreader.app.nostr.NostrKeyStore
+import com.yoreader.app.nostr.NostrSource
 import com.yoreader.app.settings.AppSettings
 import com.yoreader.app.sync.LaptopSync
 import com.yoreader.app.tts.ArticleSpeaker
@@ -32,6 +33,7 @@ class YoReaderApp : Application() {
         FeedRefresher(
             db = database,
             fetcher = FeedFetcher(httpClient, FeedParser { Xml.newPullParser() }),
+            nostr = NostrSource(nostr),
         )
     }
 

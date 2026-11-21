@@ -190,8 +190,12 @@ Everything below works and is in version 0.10.0 unless marked otherwise.
   events (NIP-01), publishes to and reads from relay.damus.io, nos.lol and
   relay.primal.net over WebSockets (one short connection per job), and drops
   duplicates and events whose id or signature don't check out. Options → Nostr →
-  Relays → Test shows which relays answer. Sharing and following come next.
-- **Unit tests** (89): feed parsing, dates, HTML helpers and feed discovery, search
+  Relays → Test shows which relays answer. **Share on Nostr** (reader → Share,
+  once there's a key): an optional comment, published as a NIP-B0 web bookmark
+  (kind 39701, "d" = the link without https:// or tracking parameters, so sharing
+  again replaces it), and optionally as a plain note (kind 1) for other Nostr apps;
+  a message says how many relays took it. Following comes next.
+- **Unit tests** (93): feed parsing, dates, HTML helpers and feed discovery, search
   folding, OPML, clean up, speech text and speed, language detection in all 14
   languages, the reader's HTML
   (paragraph numbering, script stripping, text size), the Options values

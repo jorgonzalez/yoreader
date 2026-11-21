@@ -26,6 +26,16 @@ class AppSettings(context: Context) {
         prefs.edit().putInt(KEY_TEXT_ZOOM, value).apply()
     }
 
+    private val _nostrAlsoNote = MutableStateFlow(prefs.getBoolean(KEY_NOSTR_ALSO_NOTE, false))
+
+    /** When sharing on Nostr, also post a plain note (seen in every Nostr app). */
+    val nostrAlsoNote: StateFlow<Boolean> = _nostrAlsoNote.asStateFlow()
+
+    fun setNostrAlsoNote(on: Boolean) {
+        _nostrAlsoNote.value = on
+        prefs.edit().putBoolean(KEY_NOSTR_ALSO_NOTE, on).apply()
+    }
+
     private val _keepReadDays = MutableStateFlow(
         prefs.getInt(KEY_KEEP_READ_DAYS, ArticleRetention.DEFAULT_DAYS)
             .takeIf { it in ArticleRetention.CHOICES } ?: ArticleRetention.DEFAULT_DAYS
@@ -65,6 +75,7 @@ class AppSettings(context: Context) {
         const val KEY_TEXT_ZOOM = "text_zoom"
         const val KEY_KEEP_READ_DAYS = "keep_read_days"
         const val KEY_TTS_LANGUAGES = "tts_languages"
+        const val KEY_NOSTR_ALSO_NOTE = "nostr_also_note"
     }
 }
 

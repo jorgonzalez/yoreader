@@ -346,6 +346,9 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                     val article by readerVm.article.collectAsStateWithLifecycle()
                     val cleaning by readerVm.cleaning.collectAsStateWithLifecycle()
                     val showFeedVersion by readerVm.showFeedVersion.collectAsStateWithLifecycle()
+                    val canShareOnNostr by readerVm.canShareOnNostr.collectAsStateWithLifecycle()
+                    val sharingOnNostr by readerVm.sharingOnNostr.collectAsStateWithLifecycle()
+                    val nostrAlsoNote by readerVm.nostrAlsoNote.collectAsStateWithLifecycle()
                     ReaderScreen(
                         item = article,
                         speech = speech,
@@ -359,6 +362,10 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                         onSetSaved = readerVm::setStarred,
                         onSetRead = readerVm::setRead,
                         onOpenLink = { navController.navigate(webRoute(it)) },
+                        canShareOnNostr = canShareOnNostr,
+                        sharingOnNostr = sharingOnNostr,
+                        nostrAlsoNote = nostrAlsoNote,
+                        onShareOnNostr = readerVm::shareOnNostr,
                     )
                 }
 

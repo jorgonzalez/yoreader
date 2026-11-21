@@ -9,12 +9,14 @@ import com.yoreader.app.clean.CleanResult
 import com.yoreader.app.data.ArticleWithFeed
 import com.yoreader.app.data.SearchText
 import com.yoreader.app.fetch.Html
+import com.yoreader.app.nostr.NostrShare
 import com.yoreader.app.tts.ArticleSpeaker
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -56,6 +58,38 @@ class ReaderViewModel(
 
     fun setStarred(starred: Boolean) {
         viewModelScope.launch { articleDao.setStarred(articleId, starred) }
+    }
+
+    /** Whether a Nostr key exists, so the article can be shared there. */
+    val canShareOnNostr: StateFlow<Boolean> = app.nostrKeys.key
+        .map { it != null }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), app.nostrKeys.key.value != null)
+
+    val nostrAlsoNote: StateFlow<Boolean> = app.settings.nostrAlsoNote
+
+    /** True while the article is being published to the relays. */
+    val sharingOnNostr = MutableStateFlow(false)
+
+    /**
+     * Publishes the article as a web bookmark (and, if [alsoNote], a plain note) to the
+     * relays, with [comment], and says how it went. Runs in the app's scope, so leaving
+     * the article doesn't cancel it.
+     */
+    fun shareOnNostr(comment: String, alsoNote: Boolean) {
+        val key = app.nostrKeys.key.value ?: return
+        val a = article.value?.article ?: return
+        val link = a.link.takeIf { it.isNotBlank() } ?: return
+        app.settings.setNostrAlsoNote(alsoNote)
+        sharingOnNostr.value = true
+        app.appScope.launch {
+            try {
+                val results = app.nostr.publish(NostrShare.bookmark(key, link, a.title, comment))
+                if (alsoNote) app.nostr.publish(NostrShare.note(key, link, a.title, comment))
+                _messages.send(NostrShare.summary(results))
+            } finally {
+                sharingOnNostr.value = false
+            }
+        }
     }
 
     fun setShowFeedVersion(value: Boolean) {

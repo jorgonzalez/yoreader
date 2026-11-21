@@ -419,6 +419,7 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                     val keepReadDays by settings.keepReadDays.collectAsStateWithLifecycle()
                     val app = context.applicationContext as YoReaderApp
                     val sync by app.laptopSync.state.collectAsStateWithLifecycle()
+                    val nostrKey by app.nostrKeys.key.collectAsStateWithLifecycle()
                     // Asked again on every return, e.g. after adding voices in Android settings.
                     LifecycleResumeEffect(Unit) {
                         speaker.checkVoices()
@@ -436,6 +437,10 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                         onUseSyncFile = { uri -> app.appScope.launch { app.laptopSync.useFile(uri) } },
                         onSyncNow = { app.syncLaptopSoon() },
                         onStopSync = { app.laptopSync.stop() },
+                        nostrKey = nostrKey,
+                        onCreateNostrKey = { app.nostrKeys.create() },
+                        onRestoreNostrKey = { app.nostrKeys.restore(it) },
+                        onRemoveNostrKey = { app.nostrKeys.remove() },
                         onBack = { navController.popBackStack() },
                     )
                 }

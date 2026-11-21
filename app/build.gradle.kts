@@ -118,6 +118,10 @@ dependencies {
 
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.okhttp)
+
+    // Nostr keys and signatures (secp256k1, as in Bitcoin): ACINQ's bindings to libsecp256k1.
+    implementation(libs.secp256k1.kmp)
+    implementation(libs.secp256k1.jni.android)
     // "Clean up": main-content extraction from web pages.
     implementation(libs.readability4j)
     implementation(libs.jsoup)
@@ -125,6 +129,7 @@ dependencies {
     implementation(libs.androidx.media)
 
     testImplementation(libs.junit)
+    testImplementation(libs.secp256k1.jni.jvm)
     // Real XmlPullParser for JVM unit tests (android.jar only has stubs).
     testImplementation(libs.kxml2)
     // Real org.json for JVM unit tests (sync file), same reason.

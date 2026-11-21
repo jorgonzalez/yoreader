@@ -10,6 +10,7 @@ import com.yoreader.app.fetch.FeedFetcher
 import com.yoreader.app.fetch.FeedParser
 import com.yoreader.app.fetch.FeedRefresher
 import com.yoreader.app.fetch.RefreshScheduler
+import com.yoreader.app.nostr.NostrKeyStore
 import com.yoreader.app.settings.AppSettings
 import com.yoreader.app.sync.LaptopSync
 import com.yoreader.app.tts.ArticleSpeaker
@@ -34,6 +35,9 @@ class YoReaderApp : Application() {
     }
 
     val cleaner: ArticleCleaner by lazy { ArticleCleaner(httpClient) }
+
+    /** The Nostr identity used to share articles (none until created in Options). */
+    val nostrKeys: NostrKeyStore by lazy { NostrKeyStore(this) }
 
     /** Clean up through an invisible browser view, for sites that refuse [cleaner]. */
     val browserCleaner: BrowserCleaner by lazy { BrowserCleaner(this) }

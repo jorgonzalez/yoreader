@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and older: everything is backed up except the Nostr key (see NostrKeyStore). -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="nostr.xml" />
+</full-backup-content>

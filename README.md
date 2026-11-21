@@ -13,20 +13,20 @@ turns a cluttered web page into readable article text.
 
 ## Download
 
-**[yoreader-0.11.0.apk](https://github.com/jorgonzalez/yoreader/raw/main/releases/yoreader-0.11.0.apk)**
+**[yoreader-0.11.1.apk](https://github.com/jorgonzalez/yoreader/raw/main/releases/yoreader-0.11.1.apk)**
 (Android 8.0 or newer). Open it on the phone and allow installing from that source
 when asked. What's in each version: [CHANGELOG.md](CHANGELOG.md). All versions are
 in [releases/](releases/).
 
-SHA-256 of `yoreader-0.11.0.apk`:
+SHA-256 of `yoreader-0.11.1.apk`:
 
 ```
-833e91b5d1e18358e8f093ef9d4eca81d069e3725c883e23f9e35f2b0aa0f779
+762778e8f041e227c2dd420e94a76b2b6b27b33e285bb897779cd16623bf370c
 ```
 
-To check a download, compare it with the output of `shasum -a 256 yoreader-0.11.0.apk`
-(macOS), `sha256sum yoreader-0.11.0.apk` (Linux) or
-`Get-FileHash yoreader-0.11.0.apk` (Windows PowerShell).
+To check a download, compare it with the output of `shasum -a 256 yoreader-0.11.1.apk`
+(macOS), `sha256sum yoreader-0.11.1.apk` (Linux) or
+`Get-FileHash yoreader-0.11.1.apk` (Windows PowerShell).
 
 ## Features
 
@@ -53,7 +53,7 @@ Coroutines/Flow, OkHttp, WorkManager, Readability4J + jsoup, androidx.media
 
 ## Current state
 
-Everything below works and is in version 0.11.0 unless marked otherwise.
+Everything below works and is in version 0.11.1 unless marked otherwise.
 
 - Gradle project (Kotlin DSL, version catalog), minSdk 26, targetSdk 35
 - Room data model: `Feed`, `FeedGroup`, `FeedGroupCrossRef` (many-to-many),

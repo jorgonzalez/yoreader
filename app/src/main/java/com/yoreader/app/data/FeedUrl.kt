@@ -1,9 +1,13 @@
 package com.yoreader.app.data
 
+import com.yoreader.app.nostr.NostrSource
 import java.net.URI
 import java.net.URISyntaxException
 
-/** Helpers for the URLs users type in when adding a source. */
+/**
+ * Helpers for the URLs users type in when adding a source. Besides web addresses, a
+ * Nostr public key ("npub1…") is a source too: the articles that person shares.
+ */
 object FeedUrl {
 
     /**
@@ -11,6 +15,7 @@ object FeedUrl {
      * A missing scheme is treated as https, so "example.com/feed.xml" works.
      */
     fun normalize(input: String): String? {
+        NostrSource.normalize(input)?.let { return it }
         var s = input.trim()
         if (s.isEmpty() || s.any { it.isWhitespace() }) return null
         if (!s.contains("://")) s = "https://$s"
@@ -33,6 +38,7 @@ object FeedUrl {
      * Placeholder title until feed fetching can read the real one from the feed itself.
      */
     fun defaultTitle(url: String): String {
+        NostrSource.npubOf(url)?.let { return NostrSource.shortNpub(it) }
         val host = try {
             URI(url).host
         } catch (e: URISyntaxException) {

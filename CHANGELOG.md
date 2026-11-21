@@ -21,6 +21,9 @@ build records its commit id; both show at the bottom of the side menu.
 - Reader → Share → **Share on Nostr…** (once you have a Nostr key): add an optional
   comment and publish the article to your Nostr relays. Optionally also as a note,
   so people using other Nostr apps see it too. Shares are public.
+- Follow people on Nostr: Add source now also takes a Nostr public key (npub1…). The
+  articles that person shares become a source like any other, named after their
+  Nostr profile; their comment shows above the link, and Clean up gets the article.
 
 ## 0.10.0 - 2026-11-20
 

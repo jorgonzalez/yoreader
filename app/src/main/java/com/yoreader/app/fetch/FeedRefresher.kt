@@ -6,6 +6,7 @@ import com.yoreader.app.data.Article
 import com.yoreader.app.data.Feed
 import com.yoreader.app.data.FeedUrl
 import com.yoreader.app.data.SearchText
+import com.yoreader.app.nostr.NostrSource
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -18,6 +19,8 @@ data class RefreshSummary(val feeds: Int, val failed: Int, val newArticles: Int)
 class FeedRefresher(
     private val db: AppDatabase,
     private val fetcher: FeedFetcher,
+    /** Fetches "nostr:npub1…" sources (people you follow); null: none are fetched. */
+    private val nostr: NostrSource? = null,
     private val now: () -> Long = System::currentTimeMillis,
 ) {
     private val feedDao = db.feedDao()
@@ -40,7 +43,12 @@ class FeedRefresher(
     suspend fun refresh(feedId: Long): Int? = feedDao.getById(feedId)?.let { refresh(it) }
 
     private suspend fun refresh(feed: Feed): Int? {
-        return when (val result = fetcher.fetch(feed.url, feed.etag, feed.lastModified)) {
+        val result = when {
+            NostrSource.npubOf(feed.url) == null -> fetcher.fetch(feed.url, feed.etag, feed.lastModified)
+            nostr != null -> nostr.fetch(feed.url)
+            else -> FetchResult.Failure("Nostr isn't available")
+        }
+        return when (result) {
             // Re-read the row: it may have been edited or deleted during the download.
             is FetchResult.NotModified -> {
                 feedDao.getById(feed.id)?.let { feedDao.update(it.copy(lastFetchedAt = now(), lastError = null)) }

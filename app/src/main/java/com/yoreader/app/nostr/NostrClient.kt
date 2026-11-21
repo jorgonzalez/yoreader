@@ -36,11 +36,14 @@ class NostrClient(httpClient: OkHttpClient, relays: List<String> = DEFAULT_RELAY
     data class FetchResult(val events: List<NostrEvent>, val failedRelays: Map<String, String>)
 
     /**
-     * Valid events matching [filters] from all relays, newest first, each once.
+     * Valid events matching [filters] from all relays (plus [extraRelays], e.g. the
+     * ones an author says they write to), newest first, each once.
      * Relays that couldn't be reached are listed in [FetchResult.failedRelays].
      */
-    suspend fun fetch(filters: List<NostrFilter>): FetchResult = coroutineScope {
-        val answers = relays.map { relay ->
+    suspend fun fetch(filters: List<NostrFilter>, extraRelays: List<String> = emptyList()): FetchResult = coroutineScope {
+        val known = relays.map { it.url.trimEnd('/') }.toSet()
+        val all = relays + extraRelays.map { it.trimEnd('/') }.distinct().filter { it !in known }.map { NostrRelay(it, client) }
+        val answers = all.map { relay ->
             async { relay.url to runCatching { relay.fetch(filters) } }
         }.awaitAll()
         val failed = answers.mapNotNull { (url, r) -> r.exceptionOrNull()?.let { url to (it.message ?: "failed") } }.toMap()

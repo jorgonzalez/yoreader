@@ -5,14 +5,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.Subject
 import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.MarkEmailRead
-import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Public
@@ -207,11 +207,13 @@ fun ReaderScreen(
                     }
 
                     // Opening marks the article read; this switches it back (and forth).
+                    // Like the bookmark, the icon shows the state: full envelope = unread,
+                    // hollow = read.
                     IconButton(onClick = { onSetRead(!article.isRead) }) {
                         if (article.isRead) {
-                            Icon(Icons.Default.MarkEmailUnread, contentDescription = "Mark as unread")
+                            Icon(Icons.Outlined.Email, contentDescription = "Mark as unread")
                         } else {
-                            Icon(Icons.Default.MarkEmailRead, contentDescription = "Mark as read")
+                            Icon(Icons.Filled.Email, contentDescription = "Mark as read")
                         }
                     }
 

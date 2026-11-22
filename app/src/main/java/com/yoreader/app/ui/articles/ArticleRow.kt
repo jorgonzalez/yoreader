@@ -17,8 +17,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkRemove
-import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.MarkEmailUnread
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwipeToDismissBox
@@ -123,7 +123,8 @@ internal fun SwipeableArticleRow(
                     alignment = Alignment.CenterStart,
                 )
                 SwipeToDismissBoxValue.EndToStart -> SwipeBackground(
-                    icon = if (row.isRead) Icons.Default.MarkEmailUnread else Icons.Default.Done,
+                    // The envelope it will have: full = unread, hollow = read.
+                    icon = if (row.isRead) Icons.Filled.Email else Icons.Outlined.Email,
                     label = if (row.isRead) "Mark unread" else "Mark read",
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     alignment = Alignment.CenterEnd,

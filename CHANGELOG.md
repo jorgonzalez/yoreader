@@ -4,6 +4,13 @@ Versions are `major.minor.patch`, set in `app/build.gradle.kts` (`appVersionName
 The build number (Android `versionCode`) is the number of git commits, and every
 build records its commit id; both show at the bottom of the side menu.
 
+## Unreleased
+
+- Refreshing shows the newest articles: if you're at the top of a list when new
+  articles come in (pull down, the refresh button, or a refresh on its own), the
+  list stays at the top instead of keeping the old first article in view with the
+  new ones hidden above it. Pulling down shows the spinner straight away.
+
 ## 0.11.1 - 2026-11-21
 
 - Sources can be renamed (Manage sources → a source's ⋮ → Rename…), for example to

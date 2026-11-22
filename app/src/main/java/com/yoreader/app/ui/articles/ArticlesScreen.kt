@@ -40,6 +40,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,7 +53,12 @@ import com.yoreader.app.data.ArticleListRow
 import com.yoreader.app.ui.components.ConfirmDialog
 import com.yoreader.app.ui.components.EmptyState
 import com.yoreader.app.ui.components.RefreshAction
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+
+/** How long a pull waits for its refresh to start before giving up on it. */
+private const val START_WAIT_MS = 5_000L
 
 /**
  * A list of articles: Latest (home), Saved, all, one group, or one feed.
@@ -99,6 +106,33 @@ fun ArticlesScreen(
         }
     }
 
+    // A refresh only counts as running once WorkManager starts it, which can take a
+    // moment (or not happen, if one is already running). A pull or tap shows the
+    // spinner right away and keeps it until that refresh ends.
+    val isRefreshing by rememberUpdatedState(refreshing)
+    var requested by remember { mutableStateOf(false) }
+    LaunchedEffect(requested) {
+        if (!requested) return@LaunchedEffect
+        withTimeoutOrNull(START_WAIT_MS) { snapshotFlow { isRefreshing }.first { it } }
+        snapshotFlow { isRefreshing }.first { !it }
+        requested = false
+    }
+    val busy = refreshing || requested
+    val startRefresh: (() -> Unit)? = onRefresh?.let { refresh -> { requested = true; refresh() } }
+
+    // New articles go above the rows on screen, and the list keeps those rows in place,
+    // so after a refresh the newest ones would be hidden above. If you were at the very
+    // top when they came in, stay at the top to show them.
+    val firstId = articles?.firstOrNull()?.row?.id
+    var shownFirstId by remember { mutableStateOf<Long?>(null) }
+    LaunchedEffect(firstId) {
+        val before = shownFirstId
+        shownFirstId = firstId
+        if (before == null || firstId == null || before == firstId) return@LaunchedEffect
+        val top = listState.layoutInfo.visibleItemsInfo.firstOrNull()
+        if (top?.key == before && listState.firstVisibleItemScrollOffset == 0) listState.scrollToItem(0)
+    }
+
     fun handleSwipe(row: ArticleListRow, action: SwipeAction) {
         if (lastSwipe == row to action) return
         lastSwipe = row to action
@@ -138,7 +172,7 @@ fun ArticlesScreen(
                         }
                     }
                     if (onRefresh != null && onBack == null) {
-                        RefreshAction(refreshing, onRefresh)
+                        RefreshAction(busy) { startRefresh?.invoke() }
                     }
                 },
             )
@@ -206,10 +240,10 @@ fun ArticlesScreen(
                 }
             }
 
-            if (onRefresh != null) {
+            if (startRefresh != null) {
                 PullToRefreshBox(
-                    isRefreshing = refreshing,
-                    onRefresh = onRefresh,
+                    isRefreshing = busy,
+                    onRefresh = startRefresh,
                     modifier = Modifier.fillMaxSize(),
                 ) { list() }
             } else {

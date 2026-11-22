@@ -9,6 +9,10 @@ build records its commit id; both show at the bottom of the side menu.
 - The read/unread button shows the article's state, like the bookmark does: a full
   envelope while it's unread, a hollow one once it's read. Swiping a row shows the
   envelope it will get.
+- Refreshing shows the newest articles: if you're at the top of a list when new
+  articles come in (pull down, the refresh button, or a refresh on its own), the
+  list stays at the top instead of keeping the old first article in view with the
+  new ones hidden above it. Pulling down shows the spinner straight away.
 
 ## 0.11.1 - 2026-11-21
 

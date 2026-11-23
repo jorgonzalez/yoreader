@@ -6,6 +6,8 @@ build records its commit id; both show at the bottom of the side menu.
 
 ## Unreleased
 
+- Clean up works on sites whose article is marked "no-share" (WordPress sites such as
+  metropolitano.gal), which used to fail with "Couldn't find the article text".
 - Read articles are removed after the chosen number of days counted from when you
   read them (or un-saved them), not from the article's date. Opening an old article
   no longer makes it vanish at the next refresh, even while you're reading it.

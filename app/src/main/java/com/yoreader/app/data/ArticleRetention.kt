@@ -4,9 +4,10 @@ import androidx.room.withTransaction
 import java.util.concurrent.TimeUnit
 
 /**
- * Automatic clean-up: read articles older than the number of days chosen in Options
- * are deleted. Saved and unread articles are always kept. "Older" goes by the
- * article's date (undated ones: when they were first fetched).
+ * Automatic clean-up: read articles are deleted once the number of days chosen in
+ * Options has passed since their date, since they were read and since they were
+ * un-saved, whichever is latest (undated articles: the date they were first fetched).
+ * Saved and unread articles are always kept.
  */
 class ArticleRetention(
     private val db: AppDatabase,
@@ -28,7 +29,7 @@ class ArticleRetention(
         val CHOICES = listOf(30, 60, 90, 180, 365, 0)
         const val DEFAULT_DAYS = 90
 
-        /** Articles published before this time are removed, or null when [days] is 0 (Never). */
+        /** Read articles with no activity since this time are removed, or null when [days] is 0 (Never). */
         fun cutoff(days: Int, now: Long): Long? =
             if (days <= 0) null else now - TimeUnit.DAYS.toMillis(days.toLong())
     }

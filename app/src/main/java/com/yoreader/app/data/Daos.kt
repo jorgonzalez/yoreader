@@ -70,6 +70,14 @@ private const val LIST_COLUMNS = """
 """
 
 /** The current time in ms, in SQL (for when read/saved last changed). */
+/**
+ * Read, unsaved articles whose last activity (published, read or un-saved) is before
+ * `:before`: counting from the read time keeps an old article you just opened.
+ */
+private const val OLD_READ =
+    "isRead = 1 AND isStarred = 0 AND MAX(COALESCE(publishedAt, 0), " +
+        "COALESCE(readChangedAt, 0), COALESCE(starredChangedAt, 0)) < :before"
+
 private const val NOW_MS = "CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER)"
 
 /** Lists are capped; older articles stay in the database but aren't shown (yet). */
@@ -178,15 +186,15 @@ interface ArticleDao {
 
     // --- Automatic clean-up of old read articles (see ArticleRetention) ---------------
 
-    /** Remembers the read, unsaved articles published before [before] as removed. */
+    /** Remembers the old read, unsaved articles ([OLD_READ]) as removed. */
     @Query(
         "INSERT OR IGNORE INTO removed_articles (feedId, guid) SELECT feedId, guid FROM articles " +
-            "WHERE isRead = 1 AND isStarred = 0 AND publishedAt < :before"
+            "WHERE $OLD_READ"
     )
     suspend fun rememberOldRead(before: Long)
 
-    /** Deletes the read, unsaved articles published before [before]; returns how many. */
-    @Query("DELETE FROM articles WHERE isRead = 1 AND isStarred = 0 AND publishedAt < :before")
+    /** Deletes the old read, unsaved articles ([OLD_READ]); returns how many. */
+    @Query("DELETE FROM articles WHERE $OLD_READ")
     suspend fun deleteOldRead(before: Long): Int
 
     @Query("DELETE FROM removed_articles WHERE feedId NOT IN (SELECT id FROM feeds)")

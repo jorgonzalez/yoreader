@@ -161,8 +161,9 @@ Everything below works and is in version 0.11.2 unless marked otherwise.
   and changing it doesn't reload the page), read-aloud languages (those turned on
   are listed; the others with a voice on the phone are under "More languages", a
   drop-down), the laptop sync file, when read articles are removed
-  (30/60/90/180 days, 1 year or never; 90 by default; saved and unread articles
-  are always kept), and About (version, GitHub link, license). Removed articles
+  (30/60/90/180 days, 1 year or never; 90 by default; counted from the latest of the
+  article's date, when it was read and when it was un-saved; saved and unread
+  articles are always kept), and About (version, GitHub link, license). Removed articles
   are remembered per feed (`removed_articles`), so a refresh doesn't bring them
   back while the feed still lists them. Clean-up runs at start-up, when the
   setting changes, and after each background refresh of all feeds.

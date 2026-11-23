@@ -126,10 +126,31 @@ class ArticleCleaner(private val client: OkHttpClient) {
         /** Same, for a page that's already text (no charset to detect). */
         fun extract(html: String, url: String): CleanResult = extract(url) { Jsoup.parse(html, url) }
 
+        /** Matches class names and ids that Readability4J treats as share buttons. */
+        private val SHARE = Regex("share", RegexOption.IGNORE_CASE)
+        /** Elements with at least this much text are content, not share buttons. */
+        private const val SHARE_KEEP_CHARS = 500
+
+        /**
+         * Readability4J drops every element whose class or id contains "share", whatever its
+         * size, so an article body marked e.g. "entry-content no-share" (WordPress themes)
+         * disappeared. Newer Readability only drops short ones; do the same by removing the
+         * word from elements with a lot of text.
+         */
+        private fun keepLongShareElements(document: Document) {
+            for (e in document.select("[class*=share], [id*=share]")) {
+                if (e.text().length < SHARE_KEEP_CHARS) continue
+                val names = e.classNames()
+                if (names.any { SHARE.containsMatchIn(it) }) e.classNames(names.filterNot { SHARE.containsMatchIn(it) }.toMutableSet())
+                if (SHARE.containsMatchIn(e.id())) e.removeAttr("id")
+            }
+        }
+
         private inline fun extract(url: String, parse: () -> Document): CleanResult {
             return try {
                 val document = parse()
                 if (isBrowserCheck(document)) return CleanResult.Failure(BROWSERS_ONLY, blocked = true)
+                keepLongShareElements(document)
                 val article = Readability4JExtended(url, document).parse()
                 val html = article.content
                     ?: return CleanResult.Failure("Couldn't find the article text on this page")

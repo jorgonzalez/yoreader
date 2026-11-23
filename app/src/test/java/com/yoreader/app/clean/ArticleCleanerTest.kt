@@ -103,6 +103,25 @@ class ArticleCleanerTest {
     }
 
     @Test
+    fun keepsAnArticleWhoseClassMentionsShare() {
+        // metropolitano.gal (WordPress, JNews theme): the body is in "entry-content no-share",
+        // and embedded posts (blockquotes) make Readability pick it as part of a bigger block.
+        val quote = "<blockquote><p>Una cita de una red social, con bastante texto, comas, y más palabras.</p></blockquote>"
+        val page = """
+            <html><head><title>Noticia</title></head><body><div class="wrap">
+              <div class="entry-content  no-share"><div class="content-inner">
+                $body $quote $body $quote
+              </div></div>
+            </div></body></html>
+        """.trimIndent()
+        val result = ArticleCleaner.extract(page.toByteArray(), "https://example.es/noticia")
+        assertTrue(result is CleanResult.Success)
+        result as CleanResult.Success
+        assertTrue("Párrafo número 1" in result.text)
+        assertTrue("Párrafo número 6" in result.text)
+    }
+
+    @Test
     fun teaserPagesAreRejected() {
         val result = ArticleCleaner.extract(
             "<html><body><p>Suscríbete para seguir leyendo.</p></body></html>".toByteArray(),

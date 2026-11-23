@@ -8,6 +8,9 @@ build records its commit id; both show at the bottom of the side menu.
 
 - Clean up works on sites whose article is marked "no-share" (WordPress sites such as
   metropolitano.gal), which used to fail with "Couldn't find the article text".
+- Clean up no longer shows Cloudflare's "Performing security verification" page as
+  the article (seen on Slashdot): the app now treats it as a site that only lets
+  browsers in, and tries again with its built-in browser.
 
 ## 0.11.2 - 2026-11-22
 

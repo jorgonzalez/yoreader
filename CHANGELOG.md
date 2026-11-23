@@ -4,6 +4,11 @@ Versions are `major.minor.patch`, set in `app/build.gradle.kts` (`appVersionName
 The build number (Android `versionCode`) is the number of git commits, and every
 build records its commit id; both show at the bottom of the side menu.
 
+## Unreleased
+
+- Clean up works on sites whose article is marked "no-share" (WordPress sites such as
+  metropolitano.gal), which used to fail with "Couldn't find the article text".
+
 ## 0.11.2 - 2026-11-22
 
 - The read/unread button shows the article's state, like the bookmark does: a full

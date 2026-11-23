@@ -58,6 +58,50 @@ class ArticleCleanerTest {
         assertFalse("Aceptar cookies" in result.text)
     }
 
+    // Shaped like Cloudflare's check page (2025), which has enough text to pass for an article.
+    private val browserCheck = """
+        <!DOCTYPE html><html lang="en-US"><head><title>Just a moment...</title></head><body>
+          <div class="main-wrapper" role="main"><div class="main-content">
+            <h1 class="zone-name-title h1">slashdot.org</h1>
+            <p class="h2">Performing security verification</p>
+            <p>This website uses a security service to protect against malicious bots. This page is
+            displayed while the website verifies you are not a bot. Verification usually takes a few
+            seconds, after which the page you asked for is shown. If it doesn't, make sure that
+            JavaScript and cookies are turned on in your browser, then reload the page.</p>
+            <noscript><span id="challenge-error-text">Enable JavaScript and cookies to continue</span></noscript>
+          </div></div>
+          <div class="footer">Ray ID: 8f3a0c1d2e4b5a69 · Performance &amp; Security by Cloudflare · Privacy</div>
+          <script>(function(){window._cf_chl_opt = {cvId: '3', cZone: 'slashdot.org'};}());</script>
+        </body></html>
+    """.trimIndent()
+
+    @Test
+    fun browserCheckPagesAreBlockedNotArticles() {
+        val result = ArticleCleaner.extract(browserCheck.toByteArray(), "https://slashdot.org/story/1")
+        assertTrue(result is CleanResult.Failure)
+        assertTrue((result as CleanResult.Failure).blocked)
+    }
+
+    @Test
+    fun browserCheckIsFoundByItsWordsToo() {
+        // Without the markup markers (e.g. as a WebView shows it after scripts ran).
+        val bare = browserCheck.replace(Regex("<noscript>.*</noscript>|<script>.*</script>"), "")
+        val result = ArticleCleaner.extract(bare.toByteArray(), "https://slashdot.org/story/1")
+        assertTrue(result is CleanResult.Failure)
+    }
+
+    @Test
+    fun articlesThatMentionBrowserChecksAreKept() {
+        val page = """
+            <html><body><article>
+              <p>Many sites now show a "Performing security verification" page before the article.</p>
+              $body
+            </article>
+            <script src="/cdn-cgi/challenge-platform/scripts/jsd/main.js"></script></body></html>
+        """.trimIndent()
+        assertTrue(ArticleCleaner.extract(page.toByteArray(), "https://example.es/noticia") is CleanResult.Success)
+    }
+
     @Test
     fun teaserPagesAreRejected() {
         val result = ArticleCleaner.extract(

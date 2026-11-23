@@ -50,7 +50,7 @@ class ArticleCleaner(private val client: OkHttpClient) {
                 client.newCall(request).await().use { r ->
                     // Cloudflare's "Verifying your connection" page: only real browsers get past it.
                     if (r.header("cf-mitigated") == "challenge") {
-                        return@withContext Failed("This site only lets browsers in; use Open original page", blocked = true)
+                        return@withContext Failed(BROWSERS_ONLY, blocked = true)
                     }
                     if (!r.isSuccessful) {
                         return@withContext Failed("The page couldn't be loaded (HTTP ${r.code})", blocked = r.code == 403)
@@ -90,6 +90,33 @@ class ArticleCleaner(private val client: OkHttpClient) {
             "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 " +
                 "(KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36"
 
+        private const val BROWSERS_ONLY = "This site only lets browsers in; use Open original page"
+
+        /** A browser check page's heading, in case its markup changes. */
+        private val BROWSER_CHECK_TEXT = Regex(
+            "^(Performing security verification|Verifying you are human|Checking your browser)",
+            RegexOption.IGNORE_CASE,
+        )
+        /** Longer elements are article text that may just quote those words. */
+        private const val BROWSER_CHECK_MAX_CHARS = 100
+
+        /**
+         * Cloudflare's "Performing security verification" page, which a site can send with
+         * HTTP 200 and no `cf-mitigated` header, or which the browser fallback sees before
+         * the check passes. It has enough text to pass for an article, so look for its
+         * markers: the challenge script settings or elements, or a short element (heading)
+         * that starts with its wording.
+         * (A mention of "challenge-platform" alone isn't one: normal pages load that script.)
+         */
+        fun isBrowserCheck(document: Document): Boolean {
+            if (document.select("#challenge-form, #challenge-error-text, #challenge-running, #challenge-stage").isNotEmpty()) return true
+            if (document.select("script").any { "_cf_chl_opt" in it.data() }) return true
+            return document.select("h1, h2, h3, p, span, div").any { e ->
+                val text = e.text().trim()
+                text.length <= BROWSER_CHECK_MAX_CHARS && BROWSER_CHECK_TEXT.containsMatchIn(text)
+            }
+        }
+
         /** Extraction only, no network: [bytes] is the page, [url] its address. */
         fun extract(bytes: ByteArray, url: String): CleanResult = extract(url) {
             // null charset: jsoup uses the BOM / <meta charset>, defaulting to UTF-8.
@@ -102,6 +129,7 @@ class ArticleCleaner(private val client: OkHttpClient) {
         private inline fun extract(url: String, parse: () -> Document): CleanResult {
             return try {
                 val document = parse()
+                if (isBrowserCheck(document)) return CleanResult.Failure(BROWSERS_ONLY, blocked = true)
                 val article = Readability4JExtended(url, document).parse()
                 val html = article.content
                     ?: return CleanResult.Failure("Couldn't find the article text on this page")

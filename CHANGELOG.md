@@ -4,6 +4,12 @@ Versions are `major.minor.patch`, set in `app/build.gradle.kts` (`appVersionName
 The build number (Android `versionCode`) is the number of git commits, and every
 build records its commit id; both show at the bottom of the side menu.
 
+## Unreleased
+
+- Clean up no longer shows Cloudflare's "Performing security verification" page as
+  the article (seen on Slashdot): the app now treats it as a site that only lets
+  browsers in, and tries again with its built-in browser.
+
 ## 0.11.2 - 2026-11-22
 
 - The read/unread button shows the article's state, like the bookmark does: a full

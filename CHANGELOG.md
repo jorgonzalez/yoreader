@@ -6,6 +6,8 @@ build records its commit id; both show at the bottom of the side menu.
 
 ## Unreleased
 
+- Clean up finds the article on sites that wrap the whole page in a form (ASP.NET sites
+  such as diariodeburgos.es), instead of showing their cookie notice.
 - Clean up works on sites whose article is marked "no-share" (WordPress sites such as
   metropolitano.gal), which used to fail with "Couldn't find the article text".
 - Clean up no longer shows Cloudflare's "Performing security verification" page as

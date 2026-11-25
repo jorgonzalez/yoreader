@@ -122,6 +122,35 @@ class ArticleCleanerTest {
     }
 
     @Test
+    fun keepsAnArticleInsideAPageWideForm() {
+        // diariodeburgos.es (ASP.NET): the whole page is one <form>; a cookie notice is outside
+        // it, and was all that clean up found. (On a page this small Readability may keep the
+        // notice too, as part of <body>; on the real page it doesn't.)
+        val page = """
+            <html><head><title>Noticia</title></head><body>
+              <div id="AvisoCmpRechazado"><h2>Has decidido rechazar las cookies</h2>
+                <div class="texto"><p>Cuando acepta las cookies no solo acepta publicidad personalizada,
+                también respalda un servicio gratuito de información veraz y contribuye a que el
+                diario siga ofreciéndole con rigor la actualidad de su ciudad y su provincia.</p>
+                <p>Siempre tendrá la opción de volver a rechazarlas a través del apartado Privacidad
+                que encontrará en la esquina inferior derecha.</p></div></div>
+              <form action="/buscar"><input name="q"><button>Buscar</button></form>
+              <form method="post" action="/noticia/1"><main><div id="divContenidos"><div id="div3Columnas">
+                <article><div class="3Col"><div id="articulo">
+                  <div class="CuerpoNoticiaFicha"><span id="lblTextoNoticia">$body</span></div>
+                </div></div></article>
+              </div></div></main></form>
+            </body></html>
+        """.trimIndent()
+        val result = ArticleCleaner.extract(page.toByteArray(), "https://example.es/noticia")
+        assertTrue(result is CleanResult.Success)
+        result as CleanResult.Success
+        assertTrue("Párrafo número 1" in result.text)
+        assertTrue("Párrafo número 6" in result.text)
+        assertFalse("Buscar" in result.text)
+    }
+
+    @Test
     fun teaserPagesAreRejected() {
         val result = ArticleCleaner.extract(
             "<html><body><p>Suscríbete para seguir leyendo.</p></body></html>".toByteArray(),

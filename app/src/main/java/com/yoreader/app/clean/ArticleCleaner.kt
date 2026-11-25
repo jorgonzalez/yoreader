@@ -128,7 +128,7 @@ class ArticleCleaner(private val client: OkHttpClient) {
 
         /** Matches class names and ids that Readability4J treats as share buttons. */
         private val SHARE = Regex("share", RegexOption.IGNORE_CASE)
-        /** Elements with at least this much text are content, not share buttons. */
+        /** Elements with at least this much text are content, not share buttons or forms. */
         private const val SHARE_KEEP_CHARS = 500
 
         /**
@@ -146,11 +146,24 @@ class ArticleCleaner(private val client: OkHttpClient) {
             }
         }
 
+        /**
+         * Readability4J skips everything inside a `<form>`. ASP.NET sites (e.g.
+         * diariodeburgos.es) wrap the whole page in one, so only text outside it was left,
+         * such as a cookie notice. Unwrap forms with a lot of text; small ones (search,
+         * login, newsletter) stay and are still dropped.
+         */
+        private fun unwrapPageForms(document: Document) {
+            for (form in document.select("form")) {
+                if (form.text().length >= SHARE_KEEP_CHARS) form.unwrap()
+            }
+        }
+
         private inline fun extract(url: String, parse: () -> Document): CleanResult {
             return try {
                 val document = parse()
                 if (isBrowserCheck(document)) return CleanResult.Failure(BROWSERS_ONLY, blocked = true)
                 keepLongShareElements(document)
+                unwrapPageForms(document)
                 val article = Readability4JExtended(url, document).parse()
                 val html = article.content
                     ?: return CleanResult.Failure("Couldn't find the article text on this page")

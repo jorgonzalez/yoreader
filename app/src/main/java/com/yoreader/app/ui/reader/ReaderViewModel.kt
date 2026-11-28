@@ -9,8 +9,7 @@ import com.yoreader.app.clean.CleanResult
 import com.yoreader.app.data.ArticleWithFeed
 import com.yoreader.app.data.SearchText
 import com.yoreader.app.fetch.Html
-import com.yoreader.app.nostr.NostrRelay
-import com.yoreader.app.nostr.NostrShare
+import com.yoreader.app.nostr.publishLinkOnNostr
 import com.yoreader.app.tts.ArticleSpeaker
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -77,23 +76,13 @@ class ReaderViewModel(
      * the article doesn't cancel it.
      */
     fun shareOnNostr(comment: String, alsoNote: Boolean) {
-        val key = app.nostrKeys.key.value ?: return
         val a = article.value?.article ?: return
         val link = a.link.takeIf { it.isNotBlank() } ?: return
         app.settings.setNostrAlsoNote(alsoNote)
         sharingOnNostr.value = true
         app.appScope.launch {
             try {
-                val results = app.nostr.publish(NostrShare.bookmark(key, link, a.title, comment))
-                if (alsoNote) app.nostr.publish(NostrShare.note(key, link, a.title, comment))
-                // Once your relays changed (or the first time), tell followers where you write.
-                val relays = app.settings.nostrRelays.value
-                val listed = relays.joinToString("\n")
-                if (app.settings.nostrPublishedRelays != listed) {
-                    val sent = app.nostr.publish(NostrShare.relayList(key, relays))
-                    if (sent.any { it.second == NostrRelay.PublishResult.Accepted }) app.settings.nostrPublishedRelays = listed
-                }
-                _messages.send(NostrShare.summary(results))
+                app.publishLinkOnNostr(link, a.title, comment, alsoNote)?.let { _messages.send(it) }
             } finally {
                 sharingOnNostr.value = false
             }

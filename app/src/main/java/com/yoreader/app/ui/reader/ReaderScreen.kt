@@ -19,8 +19,6 @@ import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Hub
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -81,8 +79,6 @@ fun ReaderScreen(
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
     var menuOpen by remember { mutableStateOf(false) }
-    var shareMenuOpen by remember { mutableStateOf(false) }
-    var nostrDialog by remember { mutableStateOf(false) }
     val article = item?.article
     val link = article?.link?.takeIf { it.isNotBlank() }
     val hasCleaned = article?.cleanedHtml != null
@@ -98,18 +94,6 @@ fun ReaderScreen(
 
     LaunchedEffect(messages) {
         messages.collect { snackbar.showSnackbar(it) }
-    }
-
-    if (nostrDialog && article != null) {
-        NostrShareDialog(
-            title = article.title,
-            alsoNote = nostrAlsoNote,
-            onShare = { comment, alsoNote ->
-                nostrDialog = false
-                onShareOnNostr(comment, alsoNote)
-            },
-            onDismiss = { nostrDialog = false },
-        )
     }
 
     Scaffold(
@@ -173,37 +157,15 @@ fun ReaderScreen(
                     }
 
                     if (link != null) {
-                        Box {
-                            if (sharingOnNostr) {
-                                Box(Modifier.size(ACTION_SIZE), contentAlignment = Alignment.Center) {
-                                    CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
-                                }
-                            } else {
-                                IconButton(onClick = {
-                                    if (canShareOnNostr) shareMenuOpen = true else share(context, article.title, link)
-                                }) {
-                                    Icon(Icons.Default.Share, contentDescription = "Share")
-                                }
-                            }
-                            DropdownMenu(expanded = shareMenuOpen, onDismissRequest = { shareMenuOpen = false }) {
-                                DropdownMenuItem(
-                                    text = { Text("Share link") },
-                                    leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
-                                    onClick = {
-                                        shareMenuOpen = false
-                                        share(context, article.title, link)
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Share on Nostr…") },
-                                    leadingIcon = { Icon(Icons.Default.Hub, contentDescription = null) },
-                                    onClick = {
-                                        shareMenuOpen = false
-                                        nostrDialog = true
-                                    },
-                                )
-                            }
-                        }
+                        ShareButton(
+                            title = article.title,
+                            link = link,
+                            canShareOnNostr = canShareOnNostr,
+                            sharingOnNostr = sharingOnNostr,
+                            nostrAlsoNote = nostrAlsoNote,
+                            onShareOnNostr = onShareOnNostr,
+                            size = ACTION_SIZE,
+                        )
                     }
 
                     // Opening marks the article read; this switches it back (and forth).

@@ -4,6 +4,12 @@ Versions are `major.minor.patch`, set in `app/build.gradle.kts` (`appVersionName
 The build number (Android `versionCode`) is the number of git commits, and every
 build records its commit id; both show at the bottom of the side menu.
 
+## Unreleased
+
+- Share on Nostr also works on pages opened in the app: links you follow from an
+  article and pages sent from your browser (it used to be offered only for feed
+  articles).
+
 ## 0.12.0 - 2026-11-28
 
 - Send pages to yoreader from your browser: in Brave, Chrome or any app, Share →

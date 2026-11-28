@@ -13,7 +13,6 @@ import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.RecordVoiceOver
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -65,6 +64,11 @@ fun WebPageScreen(
     onReadAloud: (LivePage) -> Unit,
     onOpenLink: (String) -> Unit,
     startAction: StartAction? = null,
+    /** Whether there's a Nostr key, so Share also offers "Share on Nostr". */
+    canShareOnNostr: Boolean = false,
+    sharingOnNostr: Boolean = false,
+    nostrAlsoNote: Boolean = false,
+    onShareOnNostr: (comment: String, alsoNote: Boolean) -> Unit = { _, _ -> },
     onStart: (LivePage) -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -150,9 +154,14 @@ fun WebPageScreen(
                             )
                         }
                     }
-                    IconButton(onClick = { share(context, cleaned?.title ?: pageTitle ?: host, url) }) {
-                        Icon(Icons.Default.Share, contentDescription = "Share")
-                    }
+                    ShareButton(
+                        title = cleaned?.takeIf { it.url == url }?.title ?: pageTitle ?: host,
+                        link = url,
+                        canShareOnNostr = canShareOnNostr,
+                        sharingOnNostr = sharingOnNostr,
+                        nostrAlsoNote = nostrAlsoNote,
+                        onShareOnNostr = onShareOnNostr,
+                    )
                     IconButton(onClick = { openExternal(context, url) }) {
                         Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "Open in browser")
                     }

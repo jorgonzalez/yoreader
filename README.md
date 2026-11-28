@@ -97,6 +97,10 @@ Everything below works and is in version 0.11.2 unless marked otherwise.
   Clean up uses the page as already loaded (no second download), so it also works on
   sites that block apps but let browsers in (e.g. Akamai's "Access Denied").
   Cleaned pages opened this way are kept in memory only, not stored.
+- **Send pages from other apps** (`ui/reader/SharedLink`): in a browser such as Brave or
+  Chrome, Share → yoreader offers **Clean up** and **Read aloud**. The link opens in the
+  in-app page, which cleans it up (or cleans it and starts reading) once it has loaded.
+  Works with any app that shares a link as text; the page isn't added to the library.
 - **Clean up** (`clean/ArticleCleaner`): downloads the article's page and keeps only
   the article with Readability4J + jsoup. Stored as `cleanedHtml` (shown in the
   reader) and `cleanedText` (paragraphs, used for listening and search). Some sites

@@ -52,6 +52,8 @@ import com.yoreader.app.ui.groups.GroupDetailScreen
 import com.yoreader.app.ui.options.OptionsScreen
 import com.yoreader.app.ui.reader.ReaderScreen
 import com.yoreader.app.ui.reader.ReaderViewModel
+import com.yoreader.app.ui.reader.SharedLink
+import com.yoreader.app.ui.reader.StartAction
 import com.yoreader.app.ui.reader.WebPageScreen
 import com.yoreader.app.ui.reader.WebPageViewModel
 import com.yoreader.app.ui.search.SearchScreen
@@ -62,6 +64,7 @@ import com.yoreader.app.ui.shell.BottomBar
 import com.yoreader.app.ui.shell.BottomTab
 import com.yoreader.app.ui.shell.NowPlayingBar
 import com.yoreader.app.ui.sources.SourcesScreen
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 private const val ROUTE_LATEST = "latest"
@@ -72,9 +75,13 @@ private const val ROUTE_OPTIONS = "options"
 private const val ROUTE_GROUP_EDIT = "group/{groupId}/edit"
 private const val ROUTE_ARTICLES = "articles/{${ArticlesViewModel.ARG_KIND}}/{${ArticlesViewModel.ARG_ID}}"
 private const val ROUTE_READER = "article/{${ReaderViewModel.ARG_ARTICLE_ID}}"
-private const val ROUTE_WEB = "web?${WebPageViewModel.ARG_URL}={${WebPageViewModel.ARG_URL}}"
+private const val ROUTE_WEB = "web?${WebPageViewModel.ARG_URL}={${WebPageViewModel.ARG_URL}}" +
+    "&${WebPageViewModel.ARG_START}={${WebPageViewModel.ARG_START}}"
 
-private fun webRoute(url: String) = "web?${WebPageViewModel.ARG_URL}=" + Uri.encode(url)
+/** A link opened in the app; [start]: clean it up or read it aloud once it's loaded. */
+private fun webRoute(url: String, start: StartAction? = null) =
+    "web?${WebPageViewModel.ARG_URL}=" + Uri.encode(url) +
+        (start?.let { "&${WebPageViewModel.ARG_START}=${it.name}" } ?: "")
 
 private fun articlesRoute(kind: String, id: Long = 0) = "articles/$kind/$id"
 
@@ -83,8 +90,12 @@ private fun articlesRoute(kind: String, id: Long = 0) = "articles/$kind/$id"
  * search) and the screens between them. Latest is the start screen.
  */
 @Composable
-fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
+fun YoReaderRoot(
+    sharedLink: MutableStateFlow<SharedLink?> = MutableStateFlow(null),
+    vm: LibraryViewModel = viewModel(),
+) {
     val navController = rememberNavController()
+    val shared by sharedLink.collectAsStateWithLifecycle()
     val groups by vm.groups.collectAsStateWithLifecycle()
     val sources by vm.sources.collectAsStateWithLifecycle()
     val refreshing by vm.isRefreshing.collectAsStateWithLifecycle()
@@ -234,6 +245,13 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                 )
             },
         ) {
+            // A link shared from another app (e.g. a browser's Share): open it here.
+            // Effects run after NavHost below has set up its screens.
+            LaunchedEffect(shared) {
+                val link = shared ?: return@LaunchedEffect
+                sharedLink.value = null
+                navController.navigate(webRoute(link.url, link.action))
+            }
             NavHost(
                 navController = navController,
                 startDestination = ROUTE_LATEST,
@@ -371,7 +389,14 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
 
                 composable(
                     route = ROUTE_WEB,
-                    arguments = listOf(navArgument(WebPageViewModel.ARG_URL) { type = NavType.StringType }),
+                    arguments = listOf(
+                        navArgument(WebPageViewModel.ARG_URL) { type = NavType.StringType },
+                        navArgument(WebPageViewModel.ARG_START) {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        },
+                    ),
                 ) {
                     val webVm: WebPageViewModel = viewModel()
                     val url by webVm.url.collectAsStateWithLifecycle()
@@ -393,6 +418,8 @@ fun YoReaderRoot(vm: LibraryViewModel = viewModel()) {
                         onSetShowCleaned = webVm::setShowCleaned,
                         onReadAloud = webVm::toggleReadAloud,
                         onOpenLink = { navController.navigate(webRoute(it)) },
+                        startAction = webVm.startAction,
+                        onStart = webVm::start,
                     )
                 }
 

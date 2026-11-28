@@ -191,7 +191,8 @@ class LivePage {
  * A real web page, like a small browser: JavaScript on, links followed inside the view,
  * system Back goes to the previous page. [onPageChanged] reports the current URL and title.
  * [onDoubleTap], when set, is called on a double tap anywhere on the page.
- * [livePage] gives access to the loaded page (for cleaning it up).
+ * [livePage] gives access to the loaded page (for cleaning it up). [onPageFinished] is
+ * called each time a page finishes loading.
  */
 @SuppressLint("SetJavaScriptEnabled", "ClickableViewAccessibility")
 @Composable
@@ -200,8 +201,10 @@ internal fun LiveWebView(
     onPageChanged: (url: String, title: String?) -> Unit,
     livePage: LivePage? = null,
     onDoubleTap: (() -> Unit)? = null,
+    onPageFinished: (() -> Unit)? = null,
 ) {
     val pageChanged by rememberUpdatedState(onPageChanged)
+    val pageFinished by rememberUpdatedState(onPageFinished)
     val doubleTap by rememberUpdatedState(onDoubleTap)
     var webView by remember { mutableStateOf<WebView?>(null) }
     var canGoBack by remember { mutableStateOf(false) }
@@ -232,6 +235,7 @@ internal fun LiveWebView(
 
                         override fun onPageFinished(view: WebView, url: String?) {
                             url?.let { pageChanged(it, view.title) }
+                            pageFinished?.invoke()
                         }
                     }
                     webChromeClient = object : WebChromeClient() {

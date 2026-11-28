@@ -32,6 +32,32 @@
             </intent-filter>
         </activity>
 
+        <!-- Share menu entries: a browser's Share hands a link to the app, which opens it
+             and cleans it up or reads it aloud straight away (see ui/reader/SharedLink). -->
+        <activity-alias
+            android:name=".ShareCleanUp"
+            android:exported="true"
+            android:label="@string/share_clean_up"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".ShareReadAloud"
+            android:exported="true"
+            android:label="@string/share_read_aloud"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity-alias>
+
         <service
             android:name=".tts.ReadAloudService"
             android:exported="false"

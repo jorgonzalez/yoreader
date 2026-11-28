@@ -34,7 +34,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.yoreader.app.tts.ArticleSpeaker
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withTimeoutOrNull
+
+private const val START_WAIT_MS = 8_000L
+private const val SETTLE_MS = 1_000L
 
 /**
  * A link opened inside the app. Shows the live page; Clean up turns it into a readable
@@ -58,10 +64,21 @@ fun WebPageScreen(
     onSetShowCleaned: (Boolean) -> Unit,
     onReadAloud: (LivePage) -> Unit,
     onOpenLink: (String) -> Unit,
+    startAction: StartAction? = null,
+    onStart: (LivePage) -> Unit = {},
 ) {
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
     val livePage = remember { LivePage() }
+    // A shared link: clean it up or read it aloud once the page has loaded. Pages full
+    // of ads may never quite finish, so don't wait forever for that.
+    val pageLoaded = remember { Channel<Unit>(Channel.CONFLATED) }
+    LaunchedEffect(startAction) {
+        if (startAction == null) return@LaunchedEffect
+        withTimeoutOrNull(START_WAIT_MS) { pageLoaded.receive() }
+        delay(SETTLE_MS) // a redirect or a browser check may still replace the page
+        onStart(livePage)
+    }
     val host = Uri.parse(url).host?.removePrefix("www.") ?: url
     val showingCleaned = showCleaned && cleaned != null
     val speechStatus = speech.status.takeIf { cleaned != null && speech.pageUrl == cleaned.url }
@@ -168,7 +185,13 @@ fun WebPageScreen(
             } else {
                 // Recreated when coming back from the cleaned view, at the current page.
                 key(showingCleaned) {
-                    LiveWebView(url = url, onPageChanged = onPageChanged, livePage = livePage, onDoubleTap = doubleTap)
+                    LiveWebView(
+                        url = url,
+                        onPageChanged = onPageChanged,
+                        livePage = livePage,
+                        onDoubleTap = doubleTap,
+                        onPageFinished = { pageLoaded.trySend(Unit) },
+                    )
                 }
             }
         }

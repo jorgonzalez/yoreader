@@ -7,10 +7,14 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.yoreader.app.YoReaderApp
 import com.yoreader.app.clean.CleanResult
+import com.yoreader.app.nostr.publishLinkOnNostr
 import com.yoreader.app.tts.ArticleSpeaker
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
@@ -45,6 +49,34 @@ class WebPageViewModel(
     val cleaning = MutableStateFlow(false)
 
     val speech: StateFlow<ArticleSpeaker.State> = speaker.state
+
+    /** Whether a Nostr key exists, so the page can be shared there. */
+    val canShareOnNostr: StateFlow<Boolean> = app.nostrKeys.key
+        .map { it != null }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), app.nostrKeys.key.value != null)
+
+    val nostrAlsoNote: StateFlow<Boolean> = app.settings.nostrAlsoNote
+
+    /** True while the page is being published to the relays. */
+    val sharingOnNostr = MutableStateFlow(false)
+
+    /**
+     * Shares the page on screen (the one followed to, not necessarily the first) on
+     * Nostr, as for feed articles. Runs in the app's scope, so leaving doesn't cancel it.
+     */
+    fun shareOnNostr(comment: String, alsoNote: Boolean) {
+        val link = url.value.takeIf { it.startsWith("http") } ?: return
+        val title = cleaned.value?.takeIf { it.url == link }?.title ?: pageTitle.value ?: Uri.parse(link).host ?: link
+        app.settings.setNostrAlsoNote(alsoNote)
+        sharingOnNostr.value = true
+        app.appScope.launch {
+            try {
+                app.publishLinkOnNostr(link, title, comment, alsoNote)?.let { _messages.send(it) }
+            } finally {
+                sharingOnNostr.value = false
+            }
+        }
+    }
 
     /** For a shared link: what to do once the page has loaded, until it's been done. */
     val startAction: StartAction? = savedState.get<String>(ARG_START)

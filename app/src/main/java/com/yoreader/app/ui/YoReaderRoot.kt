@@ -404,6 +404,9 @@ fun YoReaderRoot(
                     val cleaned by webVm.cleaned.collectAsStateWithLifecycle()
                     val showCleaned by webVm.showCleaned.collectAsStateWithLifecycle()
                     val cleaning by webVm.cleaning.collectAsStateWithLifecycle()
+                    val webCanShareOnNostr by webVm.canShareOnNostr.collectAsStateWithLifecycle()
+                    val webSharingOnNostr by webVm.sharingOnNostr.collectAsStateWithLifecycle()
+                    val webNostrAlsoNote by webVm.nostrAlsoNote.collectAsStateWithLifecycle()
                     WebPageScreen(
                         url = url,
                         pageTitle = pageTitle,
@@ -420,6 +423,10 @@ fun YoReaderRoot(
                         onOpenLink = { navController.navigate(webRoute(it)) },
                         startAction = webVm.startAction,
                         onStart = webVm::start,
+                        canShareOnNostr = webCanShareOnNostr,
+                        sharingOnNostr = webSharingOnNostr,
+                        nostrAlsoNote = webNostrAlsoNote,
+                        onShareOnNostr = webVm::shareOnNostr,
                     )
                 }
 

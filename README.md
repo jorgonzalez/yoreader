@@ -198,8 +198,9 @@ Everything below works and is in version 0.12.0 unless marked otherwise.
   events (NIP-01), publishes to and reads from relay.damus.io, nos.lol and
   relay.primal.net over WebSockets (one short connection per job), and drops
   duplicates and events whose id or signature don't check out. Options → Nostr →
-  Relays → Test shows which relays answer. **Share on Nostr** (reader → Share,
-  once there's a key): an optional comment, published as a NIP-B0 web bookmark
+  Relays → Test shows which relays answer. **Share on Nostr** (Share in the reader
+  and in the in-app page, once there's a key; the in-app page shares the page on screen,
+  including links followed from an article and pages sent from another app): an optional comment, published as a NIP-B0 web bookmark
   (kind 39701, "d" = the link without https:// or tracking parameters, so sharing
   again replaces it), and optionally as a plain note (kind 1) for other Nostr apps;
   a message says how many relays took it. **Follow someone**: add their npub as a

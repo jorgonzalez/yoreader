@@ -11,7 +11,7 @@ plugins {
 // versionName is set by hand (see CHANGELOG.md). versionCode and the commit id come
 // from git, so every commit builds a higher number and each build says what code it
 // is. Without git (e.g. a source zip) they fall back to 1 / "unknown".
-val appVersionName = "0.11.2"
+val appVersionName = "0.12.0"
 
 fun git(vararg args: String): String? = try {
     providers.exec {

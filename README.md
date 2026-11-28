@@ -13,20 +13,20 @@ turns a cluttered web page into readable article text.
 
 ## Download
 
-**[yoreader-0.11.2.apk](https://github.com/jorgonzalez/yoreader/raw/main/releases/yoreader-0.11.2.apk)**
+**[yoreader-0.12.0.apk](https://github.com/jorgonzalez/yoreader/raw/main/releases/yoreader-0.12.0.apk)**
 (Android 8.0 or newer). Open it on the phone and allow installing from that source
 when asked. What's in each version: [CHANGELOG.md](CHANGELOG.md). All versions are
 in [releases/](releases/).
 
-SHA-256 of `yoreader-0.11.2.apk`:
+SHA-256 of `yoreader-0.12.0.apk`:
 
 ```
-2dba93b743b30acb840c302c6dad8bf60ff4691c7bba0af41eaddc587fcb140c
+b1693eb3a87ca80cf4bfdcf307291e0da2dd2097b988ba686b8fb15bcf31edb6
 ```
 
-To check a download, compare it with the output of `shasum -a 256 yoreader-0.11.2.apk`
-(macOS), `sha256sum yoreader-0.11.2.apk` (Linux) or
-`Get-FileHash yoreader-0.11.2.apk` (Windows PowerShell).
+To check a download, compare it with the output of `shasum -a 256 yoreader-0.12.0.apk`
+(macOS), `sha256sum yoreader-0.12.0.apk` (Linux) or
+`Get-FileHash yoreader-0.12.0.apk` (Windows PowerShell).
 
 ## Features
 

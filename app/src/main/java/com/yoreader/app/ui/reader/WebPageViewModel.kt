@@ -29,7 +29,7 @@ data class CleanedPage(
 /** A link opened inside the app: the live page, plus clean up and read aloud. */
 class WebPageViewModel(
     application: Application,
-    savedState: SavedStateHandle,
+    private val savedState: SavedStateHandle,
 ) : AndroidViewModel(application) {
 
     private val app = application as YoReaderApp
@@ -45,6 +45,11 @@ class WebPageViewModel(
     val cleaning = MutableStateFlow(false)
 
     val speech: StateFlow<ArticleSpeaker.State> = speaker.state
+
+    /** For a shared link: what to do once the page has loaded, until it's been done. */
+    val startAction: StartAction? = savedState.get<String>(ARG_START)
+        ?.let { name -> StartAction.entries.firstOrNull { it.name == name } }
+        ?.takeUnless { savedState.get<Boolean>(STARTED) == true }
 
     private val _messages = Channel<String>(Channel.BUFFERED)
     val messages: Flow<String> = _messages.receiveAsFlow()
@@ -101,6 +106,17 @@ class WebPageViewModel(
         }
     }
 
+    /** Runs [startAction] once, e.g. when the shared page has loaded. */
+    fun start(livePage: LivePage) {
+        val action = startAction ?: return
+        if (savedState.get<Boolean>(STARTED) == true) return
+        savedState[STARTED] = true
+        when (action) {
+            StartAction.CLEAN -> clean(livePage)
+            StartAction.READ -> toggleReadAloud(livePage)
+        }
+    }
+
     /** Pause/resume this page, or start reading it (cleaning it first if needed). */
     fun toggleReadAloud(livePage: LivePage? = null) {
         val page = cleaned.value
@@ -132,6 +148,9 @@ class WebPageViewModel(
 
     companion object {
         const val ARG_URL = "url"
+        /** Optional: a [StartAction] name, to clean up or read aloud once loaded. */
+        const val ARG_START = "start"
+        private const val STARTED = "started"
 
         /** Negative ids never clash with stored articles. */
         fun idFor(url: String): Long = -1L - (url.hashCode().toLong() and 0x7fffffffL)

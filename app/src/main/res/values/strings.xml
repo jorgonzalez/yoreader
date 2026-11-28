@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">yoreader</string>
+    <string name="share_clean_up">Clean up</string>
+    <string name="share_read_aloud">Read aloud</string>
 </resources>

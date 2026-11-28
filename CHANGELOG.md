@@ -6,6 +6,9 @@ build records its commit id; both show at the bottom of the side menu.
 
 ## Unreleased
 
+- Send pages to yoreader from your browser: in Brave, Chrome or any app, Share →
+  yoreader → **Clean up** or **Read aloud** opens the page in yoreader and cleans it
+  up, or cleans it and starts reading it aloud.
 - Clean up finds the article on sites that wrap the whole page in a form (ASP.NET sites
   such as diariodeburgos.es), instead of showing their cookie notice.
 - Clean up works on sites whose article is marked "no-share" (WordPress sites such as
